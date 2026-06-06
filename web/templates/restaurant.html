@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ restaurant.name }}{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:36px;padding-bottom:56px">
+    <h1>{{ restaurant.name }}</h1>
+    <p>{{ restaurant.description }}</p>
+    <h2>Reviews</h2>
+    {% if reviews %}
+        <ul>
+            {% for review in reviews %}
+                <li>
+                    <strong>{{ review.username }}</strong> rated it {{ review.rating }}/5
+                    <p>{{ review.comment }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No reviews yet.</p>
+    {% endif %}
+    
+    <h2>Menu</h2>
+    {% if menu_sections %}
+        {% for sect, items in menu_sections.items() %}
+            <h3>{{ sect }}</h3>
+            <ul>
+                {% for item in items %}
+                    <li>
+                        <strong>{{ item.name }} - {{item.description}}</strong>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    {% else %}
+        <p>No menu items available.</p>
+    {% endif %}
+</div>
+{% endblock %}

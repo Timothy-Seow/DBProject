@@ -50,6 +50,32 @@ CREATE TABLE IF NOT EXISTS menu_categories (
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id)
 );
 
+ -- many to 1 relation with users and restaurants | made it so that a user can only review a restaurant once
+CREATE TABLE IF NOT EXISTS restaurant_reviews (
+    review_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+    title TEXT,
+    content TEXT,
+    upvotes INTEGER DEFAULT 0,
+    UNIQUE (user_id, restaurant_id),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- many to 1 relation with users and menu_items | made it so that a user can only review a menu item once
+CREATE TABLE IF NOT EXISTS menu_item_reviews (
+    review_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+    content TEXT,
+    helpful_count INTEGER DEFAULT 0,
+    UNIQUE (user_id, item_id),
+    FOREIGN KEY (item_id)  REFERENCES menu_items(item_id),
+    FOREIGN KEY (user_id)  REFERENCES users(user_id) ON DELETE CASCADE
+);
 
 INSERT OR IGNORE INTO categories (name, description) VALUES
 ('American',       'Classic American comfort food'),

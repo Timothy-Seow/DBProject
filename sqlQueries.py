@@ -13,11 +13,62 @@ def get_connection() -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
+# USER STUFF
+def create_user(username: str, email: str, password: str) -> Optional[int]:
+    try:
+        pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        with get_connection() as conn:
+            cur = conn.execute("""
+                    INSERT INTO users (username, email, password_hash) 
+                    VALUES (?, ?, ?)
+                    """, 
+                    (username, email, pw_hash),
+            )
+        return cur.lastrowid
+    except sqlite3.IntegrityError:
+        print("Error creating user: username or email already exists.")
+        return None
+    except sqlite3.Error as e:
+        print(f"Error creating user: {e}")
+        return None
+
+def get_user(user_id: int) -> Optional[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT user_id, username, email
+                FROM users WHERE user_id = ?
+                """,
+                (user_id,),
+            )
+            return cur.fetchone()
+    except sqlite3.Error as e:
+        print(f"Error getting user by id: {e}")
+        return None
+    
+def authenticate_user(name: str, password: str) -> Optional[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                    SELECT user_id, username, email, password_hash
+                    FROM users WHERE username = ?
+                    """,
+                    (name,),
+                )
+        user = cur.fetchone()
+        if user and bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+            user.pop("password_hash")
+            return user
+        return None
+    except sqlite3.Error as e:
+        print(f"Error authenticating user: {e}")
+        return None
+
+# RESTAURANT STUFF
 def get_restaurants() -> List[Dict]:
     try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM restaurants")
+        with get_connection() as conn:
+            cur = conn.execute("SELECT * FROM restaurants")
         return cur.fetchall()
     except sqlite3.Error as e:
         print(f"Error fetching restaurants: {e}")
@@ -28,9 +79,8 @@ def get_restaurants() -> List[Dict]:
 
 def get_restaurant_by_id(rid: int) -> Optional[Dict]:
     try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM restaurants WHERE restaurant_id = ?", (rid,))
+        with get_connection() as conn:
+            cur = conn.execute("SELECT * FROM restaurants WHERE restaurant_id = ?", (rid,))
         return cur.fetchone()
     except sqlite3.Error as e:
         print(f"Error fetching restaurant by ID: {e}")
@@ -41,15 +91,14 @@ def get_restaurant_by_id(rid: int) -> Optional[Dict]:
 
 def get_menu_by_restaurant(rid: int) -> List[Dict]:
     try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT mi.item_id, mi.name, mi.description, mi.price, mi.avg_rating, mi.total_reviews, mc.name AS section 
-            FROM menu_items mi 
-            INNER JOIN menu_categories mc ON mi.menu_category_id = mc.menu_category_id
-            WHERE mi.restaurant_id = ?
-        """, 
-        (rid,))
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT mi.item_id, mi.name, mi.description, mi.price, mi.avg_rating, mi.total_reviews, mc.name AS section 
+                FROM menu_items mi 
+                INNER JOIN menu_categories mc ON mi.menu_category_id = mc.menu_category_id
+                WHERE mi.restaurant_id = ?
+            """, 
+            (rid,))
         return cur.fetchall()
     except sqlite3.Error as e:
         print(f"Error fetching menu items: {e}")
@@ -57,3 +106,40 @@ def get_menu_by_restaurant(rid: int) -> List[Dict]:
     finally:
         if conn:
             conn.close()
+
+def create_restaurant_review(restaurant_id: int, user_id: int, rating: int, title: str = None, content: str = None) -> Optional[int]:
+    if not 1 <= rating <= 5:
+        print("Error rating not selected")
+        return None
+    try:
+        print(f"Restaurant ID: {restaurant_id}, User ID: {user_id}, Rating: {rating}, Title: {title}, Content: {content}")
+        with get_connection() as conn:
+            cur = conn.execute("""
+                INSERT INTO restaurant_reviews (restaurant_id, user_id, rating, title, content)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (restaurant_id, user_id, rating, title, content),
+            )
+            return cur.lastrowid
+    except sqlite3.IntegrityError:
+        print("Error creating restaurant review: user already has a review in this restaurant")
+        return None
+    except sqlite3.Error as e:
+        print(f"Error creating restaurant review: {e}")
+        return None
+    
+def get_reviews_for_restaurant(restaurant_id: int) -> List[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT r.review_id, r.rating, r.title, r.content, u.username, u.user_id
+                FROM restaurant_reviews r
+                JOIN users u ON r.user_id = u.user_id
+                WHERE r.restaurant_id = ?
+            """,
+            (restaurant_id,),
+        )
+        return cur.fetchall()
+    except sqlite3.Error as e:
+        print(f"Error geting reviews for restaurant: {e}")
+        return []

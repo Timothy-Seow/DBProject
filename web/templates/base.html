@@ -3,19 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   {% block head %}{% endblock %}
 </head>
 <body>
 
-<nav>
-    <ul>
-    <li><a href="{{ url_for('home') }}">Home</a></li>
-    </ul>
+<nav class="navbar">
+    <div class="nav_links"></div>
+        <a href="{{ url_for('home') }}">Home</a>
+
+        {% if user %}
+            <a href="{{ url_for('logout') }}">Log out</a>
+        {% else %}
+            <a href="{{ url_for('auth') }}">Sign in</a>
+        {% endif %}
+    <div>
 </nav>
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container">
+      <ul class="flash-list">
+        {% for category, message in messages %}
+          <li class="flash flash--{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endwith %}
 
 {% block content %}{% endblock %}
 
 <footer>
     <p>&copy; Nigga website</p>
 </footer>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

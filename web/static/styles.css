@@ -1,0 +1,73 @@
+:root {
+  --tan:       #D4C4B0;
+  --star:      #F5A623;
+  --transition: all .2s ease;
+}
+
+.star-picker { 
+    display: flex; 
+    gap: 6px; 
+    margin-bottom: 16px; 
+    justify-content: start;
+    flex-direction: row-reverse;
+}
+.star-picker input { display: none;}
+.star-picker label {
+  font-size: 1.6rem; cursor: pointer; color: var(--tan);
+  transition: var(--transition); line-height: 1;
+}
+.star-picker input:checked ~ label,
+.star-picker label:hover,
+.star-picker label:hover ~ label { color: var(--star); }
+
+
+.auth-form { display: none; }
+.auth-form.active { display: block; }
+
+.auth-tab {
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.auth-tab.active {
+    background: #fff;
+    border-bottom: 2px solid #007bff; /* Highlights active tab */
+    font-weight: bold;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 5px;              
+    margin-bottom: 20px;    
+}
+
+.auth-form div {
+    margin-bottom: 15px;
+}
+
+.auth-form label {
+    display: block; 
+    margin-bottom: 5px;
+}
+
+.auth-form input {
+    display: block;
+    width: 100%; 
+    max-width: 300px;  
+    padding: 6px 10px;
+    box-sizing: border-box;
+}
+
+/* Flash Messages  */
+.flash-list { list-style: none; padding: 0; }
+.flash {
+  padding: 12px 20px; border-radius: var(--radius-sm);
+  margin: 12px 0; font-size: .9rem; font-weight: 500;
+  border-left: 4px solid;
+}
+.flash--success { background: #F0FBF1; color: #2D6A34;}
+.flash--error   { background: #FFF0EE; color: #922B1F;}
+.flash--warning { background: #FFF9EC; color: #8A5D00;}
+.flash--info    { background: #EEF4FF; color: #1A4F8C; border-color: #4A7FD0; }

@@ -10,3 +10,4 @@
 
 ## Notes
 - As the generated DB file is included, it is not necessary to run the data loader unless more data is needed
+- Test user 1 (Username: john, Password: password)

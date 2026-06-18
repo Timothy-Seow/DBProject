@@ -143,3 +143,141 @@ def get_reviews_for_restaurant(restaurant_id: int) -> List[Dict]:
     except sqlite3.Error as e:
         print(f"Error geting reviews for restaurant: {e}")
         return []
+    
+def create_menu_item_review(item_id: int, user_id: int, rating: int, content: str = None) -> Optional[int]:
+    if not 1 <= rating <= 5:
+        print("Error rating not selected")
+        return None
+    try:
+        with get_connection() as conn:
+            cur = conn.execute(
+                "INSERT INTO menu_item_reviews (item_id, user_id, rating, content) "
+                "VALUES (?, ?, ?, ?)",
+                (item_id, user_id, rating, content),
+            )
+            return cur.lastrowid
+    except sqlite3.IntegrityError:
+        print("Error creating menu tem review: user already reviewed this item.")
+        return None
+    except sqlite3.Error as e:
+        print(f"Error creating menu tem review {e}")
+        return None
+
+def get_reviews_for_menu_item(item_id: int) -> List[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT r.review_id, r.rating, r.content, r.helpful_count, r.created_at, u.username, u.avatar_url
+                FROM menu_item_reviews r
+                JOIN users u ON r.user_id = u.user_id
+                WHERE r.item_id = ?
+                """,
+                (item_id,),
+            )
+            return cur.fetchall()
+    except sqlite3.Error as e:
+        print(f"Error getting reviews for menu item: {e}")
+        return []
+
+# same as the above func, but for checking if the current user is the one who reviewed
+def get_user_item_reviews_for_restaurant(user_id: int, restaurant_id: int) -> Dict[int, Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT mir.review_id, mir.item_id, mir.rating, mir.content
+                FROM menu_item_reviews mir
+                JOIN menu_items mi ON mir.item_id = mi.item_id
+                WHERE mir.user_id = ? AND mi.restaurant_id = ?
+                """,
+                (user_id, restaurant_id),
+            )
+            return {row["item_id"]: row for row in cur.fetchall()}
+    except sqlite3.Error as e:
+        print(f"Error geting user item reviews for restaurant: {e}")
+        return {}
+
+# Advanced query lol. To get all reviews by a user across both restaurant and menu-item types. Uses UNION ALL to merge both tables.
+def get_user_review_history(user_id: int) -> List[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT 'restaurant' AS review_type, rr.review_id, r.name AS subject, rr.rating, rr.title, rr.content
+                FROM restaurant_reviews rr
+                JOIN restaurants r ON rr.restaurant_id = r.restaurant_id
+                WHERE rr.user_id = ?
+                UNION ALL
+                SELECT 'menu_item' AS review_type, mir.review_id, mi.name AS subject, mir.rating, NULL AS title, mir.content
+                FROM menu_item_reviews mir JOIN menu_items mi ON mir.item_id = mi.item_id
+                WHERE mir.user_id = ? 
+                """,
+                (user_id, user_id),
+            )
+            return cur.fetchall()
+    except sqlite3.Error as e:
+        print(f"Error getting user review history: {e}")
+        return []
+
+def delete_restaurant_review(review_id: int, user_id: int) -> bool:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                DELETE FROM restaurant_reviews 
+                WHERE review_id = ? AND user_id = ?
+                """,
+                (review_id, user_id),
+            )
+            return cur.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Error deleting restaurant review: {e}")
+        return False
+    
+def update_restaurant_review(review_id: int, user_id: int, rating: int = None, title: str = None, content: str = None) -> bool:
+
+    if rating is not None and not 1 <= rating <= 5:
+        print("Error: Rating must be between 1 and 5.")
+        return False
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                UPDATE restaurant_reviews
+                SET rating = COALESCE(?, rating), title = COALESCE(?, title), content = COALESCE(?, content)
+                WHERE review_id = ? AND user_id = ?
+                """,
+                (rating, title, content, review_id, user_id),
+            )
+            return cur.rowcount > 0
+    except sqlite3.Error as exc:
+        print(f"[ERROR] update_restaurant_review: {exc}")
+        return False
+    
+def delete_menu_item_review(review_id: int, user_id: int) -> bool:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                DELETE FROM menu_item_reviews
+                WHERE review_id = ? AND user_id = ?
+                """,
+                (review_id, user_id),
+             )  
+            return cur.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Error deleting menu item review: {e}")
+        return False
+
+def update_menu_item_review(review_id: int, user_id: int, rating: int = None, content: str = None) -> bool:
+    if rating is not None and not 1 <= rating <= 5:
+        print("[ERROR] Rating must be between 1 and 5.")
+        return False
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                UPDATE menu_item_reviews
+                SET rating = COALESCE(?, rating), content = COALESCE(?, content)
+                WHERE review_id = ? AND user_id = ?
+                """,
+                (rating, content, review_id, user_id),
+            )
+            return cur.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Error updating menu item review: {e}")
+        return False

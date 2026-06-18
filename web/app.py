@@ -26,6 +26,10 @@ def home():
 @app.route("/restaurant/<int:rid>")
 def restaurant(rid):
     restaurant = db.get_restaurant_by_id(rid)
+    if not restaurant:
+        flash("Restaurant not found.", "error")
+        return redirect(url_for('home'))
+    
     menu = db.get_menu_by_restaurant(rid)
     reviews = db.get_reviews_for_restaurant(rid)
 
@@ -34,11 +38,12 @@ def restaurant(rid):
         sec = i.get("section") or "General"
         menu_sections.setdefault(sec, []).append(i)
 
-    if not restaurant:
-        flash("Restaurant not found.", "error")
-        return redirect(url_for('home'))
+    user_item_reviews = {}
+    if current_user():
+        uid = current_user()["user_id"]
+        user_item_reviews = db.get_user_item_reviews_for_restaurant(uid, rid)
     
-    return render_template('restaurant.html', restaurant=restaurant, menu_sections=menu_sections, reviews=reviews)
+    return render_template('restaurant.html', restaurant=restaurant, menu_sections=menu_sections, reviews=reviews, user_item_reviews=user_item_reviews)
 
 # restaurant review route
 @app.route("/restaurant/<int:rid>/review", methods=["POST"])
@@ -58,6 +63,96 @@ def submit_review(rid):
     else:
         flash("Error Submitting", "error")
     return redirect(url_for("restaurant", rid=rid))
+
+@app.route("/review/<int:rev_id>/edit", methods=["POST"])
+def update_review(rev_id):
+    rating = request.form.get("rating",  type=int)
+    title = request.form.get("title",   "").strip()
+    content = request.form.get("content", "").strip()
+    rid = request.form.get("restaurant_id", type=int)
+    uid = current_user()["user_id"]
+
+    if not rating or not 1 <= rating <= 5:
+        flash("Please select a star rating.", "error")
+        return redirect(url_for("restaurant", rid=rid))
+
+    ok = db.update_restaurant_review(rev_id, uid, rating=rating, title=title or None, content=content or None)
+    if ok:
+        flash("Review updated.", "success")
+    else:
+        flash("Could not update review.", "error")
+    
+    try:
+        rid = request.form.get("restaurant_id", type=int)
+        return redirect(url_for("restaurant", rid=rid))
+    except:
+        return redirect(url_for("profile"))
+
+# menu item review route
+@app.route("/menu-item/<int:iid>/review", methods=["POST"])
+def submit_item_review(iid):
+    rating = request.form.get("rating",  type=int)
+    content = request.form.get("content", "").strip()
+    rid  = request.form.get("restaurant_id", type=int)
+
+    if not rating or not 1 <= rating <= 5:
+        flash("Please select a rating.", "error")
+        return redirect(url_for("restaurant", rid=rid))
+
+    uid = current_user()["user_id"]
+    ok  = db.create_menu_item_review(iid, uid, rating, content or None)
+    if ok:
+        flash("Review posted!", "success")
+    else:
+        flash("Could not submit review — you may already have reviewed this item.", "error")
+    return redirect(url_for("restaurant", rid=rid))
+
+@app.route("/item-review/<int:rev_id>/edit", methods=["POST"])
+def update_item_review(rev_id):
+    rating = request.form.get("rating",  type=int)
+    content = request.form.get("content", "").strip()
+    uid = current_user()["user_id"]
+
+    if not rating or not 1 <= rating <= 5:
+        flash("Please select a star rating.", "error")
+        return redirect(url_for("restaurant", rid=rid))
+
+    ok = db.update_menu_item_review(rev_id, uid, rating=rating, content=content or None)
+
+    if ok:
+        flash("Review updated.", "success")
+    else:
+        flash("Could not update review.", "error")
+    
+    try:
+        rid = request.form.get("restaurant_id", type=int)
+        return redirect(url_for("restaurant", rid=rid))
+    except:
+        return redirect(url_for("profile"))
+
+
+# DELETE review
+@app.route("/review/<int:rev_id>/<string:rev_type>/delete", methods=["POST"])
+def delete_review(rev_id, rev_type):
+    print(f"PLACEEEE: {rev_type}")
+    uid = current_user()["user_id"]
+    if rev_type == "res":
+        db.delete_restaurant_review(rev_id, uid)
+        flash("Review deleted.", "info")
+        try:
+            rid = request.form.get("restaurant_id", type=int)
+            return redirect(url_for("restaurant", rid=rid))
+        except:
+            return redirect(url_for("profile"))
+    elif rev_type == "men":
+        db.delete_menu_item_review(rev_id, uid)
+        flash("Review deleted.", "info")
+        return redirect(url_for("profile"))
+    else:
+        rid = request.form.get("restaurant_id", type=int)
+        db.delete_menu_item_review(rev_id, uid)
+        flash("Review deleted.", "info")
+        return redirect(url_for("restaurant", rid=rid))
 
 # for the LOGIN / SIGNUP process
 @app.route("/auth", methods=["GET", "POST"])
@@ -101,6 +196,13 @@ def auth():
                 tab = "register"
 
     return render_template("auth.html", tab=tab)
+
+@app.route("/profile")
+def profile():
+    uid = current_user()["user_id"]
+    history = db.get_user_review_history(uid)
+    print(f"INSIDE DICK IS: {history}")
+    return render_template("profile.html", history=history)
 
 @app.route("/logout")
 def logout():

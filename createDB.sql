@@ -77,6 +77,94 @@ CREATE TABLE IF NOT EXISTS menu_item_reviews (
     FOREIGN KEY (user_id)  REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+
+-- TRIGGERS ---
+-- After a restaurant review is inserted
+CREATE TRIGGER IF NOT EXISTS trg_rest_review_insert
+AFTER INSERT ON restaurant_reviews
+BEGIN
+    UPDATE restaurants
+    SET avg_rating = (SELECT ROUND(AVG(CAST(rating AS REAL)), 2)
+                         FROM restaurant_reviews
+                         WHERE restaurant_id = NEW.restaurant_id),
+        total_reviews = (SELECT COUNT(*)
+                         FROM restaurant_reviews
+                         WHERE restaurant_id = NEW.restaurant_id)
+    WHERE restaurant_id = NEW.restaurant_id;
+END;
+
+-- After a restaurant review is updated
+CREATE TRIGGER IF NOT EXISTS trg_rest_review_update
+AFTER UPDATE ON restaurant_reviews
+BEGIN
+    UPDATE restaurants
+    SET avg_rating = (SELECT ROUND(AVG(CAST(rating AS REAL)), 2)
+                         FROM restaurant_reviews
+                         WHERE restaurant_id = NEW.restaurant_id),
+        total_reviews = (SELECT COUNT(*)
+                         FROM restaurant_reviews
+                         WHERE restaurant_id = NEW.restaurant_id)
+    WHERE restaurant_id = NEW.restaurant_id;
+END;
+
+-- After a restaurant review is deleted
+CREATE TRIGGER IF NOT EXISTS trg_rest_review_delete
+AFTER DELETE ON restaurant_reviews
+BEGIN
+    UPDATE restaurants
+    SET avg_rating = COALESCE(
+                            (SELECT ROUND(AVG(CAST(rating AS REAL)), 2)
+                             FROM restaurant_reviews
+                             WHERE restaurant_id = OLD.restaurant_id), 0.0),
+        total_reviews = (SELECT COUNT(*)
+                         FROM restaurant_reviews
+                         WHERE restaurant_id = OLD.restaurant_id)
+    WHERE restaurant_id = OLD.restaurant_id;
+END;
+
+-- After a menu item review is inserted
+CREATE TRIGGER IF NOT EXISTS trg_item_review_insert
+AFTER INSERT ON menu_item_reviews
+BEGIN
+    UPDATE menu_items
+    SET avg_rating = (SELECT ROUND(AVG(CAST(rating AS REAL)), 2)
+                         FROM menu_item_reviews
+                         WHERE item_id = NEW.item_id),
+        total_reviews = (SELECT COUNT(*)
+                         FROM menu_item_reviews
+                         WHERE item_id = NEW.item_id)
+    WHERE item_id = NEW.item_id;
+END;
+
+-- After a menu item review is updated
+CREATE TRIGGER IF NOT EXISTS trg_item_review_update
+AFTER UPDATE ON menu_item_reviews
+BEGIN
+    UPDATE menu_items
+    SET avg_rating    = (SELECT ROUND(AVG(CAST(rating AS REAL)), 2)
+                         FROM menu_item_reviews
+                         WHERE item_id = NEW.item_id),
+        total_reviews = (SELECT COUNT(*)
+                         FROM menu_item_reviews
+                         WHERE item_id = NEW.item_id)
+    WHERE item_id = NEW.item_id;
+END;
+
+-- After a menu item review is deleted
+CREATE TRIGGER IF NOT EXISTS trg_item_review_delete
+AFTER DELETE ON menu_item_reviews
+BEGIN
+    UPDATE menu_items
+    SET avg_rating    = COALESCE(
+                            (SELECT ROUND(AVG(CAST(rating AS REAL)), 2)
+                             FROM menu_item_reviews
+                             WHERE item_id = OLD.item_id), 0.0),
+        total_reviews = (SELECT COUNT(*)
+                         FROM menu_item_reviews
+                         WHERE item_id = OLD.item_id)
+    WHERE item_id = OLD.item_id;
+END;
+
 INSERT OR IGNORE INTO categories (name, description) VALUES
 ('American',       'Classic American comfort food'),
 ('Pizza',          'Pizza and Italian-American cuisine'),

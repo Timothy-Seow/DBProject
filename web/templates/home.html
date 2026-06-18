@@ -10,6 +10,9 @@
                 {% for r in restaurants %}
                     <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}">
                         <li>{{ r.name }}</li>
+                        <span class="text-muted" style="font-size:.8rem">
+                            {{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}
+                        </span>
                     </a>
                 {% endfor %}
             </ul>
@@ -19,3 +22,4 @@
     </div>
 </div>
 {% endblock %}
+

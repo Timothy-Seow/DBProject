@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Browse Restaurants{% endblock %}
+
+{% block content %}
+<aside class="sidebar">
+    <form class="filter-panel" method="GET" action="{{ url_for('browse') }}">
+        <h3>Filters</h3>
+
+        <div class="filter-group">
+          <label>Keyword</label>
+          <input type="text" name="q" class="form-control" value="{{ query.q or '' }}" placeholder="Name or keyword">
+        </div>
+
+        <div class="filter-group">
+          <label>Category</label>
+          <select name="category">
+            <option value="">All categories</option>
+            {% for cat in categories %}
+                <option value="{{ loop.index }}"
+                    {% if query.category == loop.index %}selected{% endif %}>
+                    {{ cat.category }} ({{ cat.restaurant_count }})
+                </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+            <label>Min. Rating</label>
+            <select name="min_rating">
+                <option value="">Any rating</option>
+                <option value="4.5" {% if query.min_rating == 4.5 %}selected{% endif %}>★★★★★ 4.5+</option>
+                <option value="4.0" {% if query.min_rating == 4.0 %}selected{% endif %}>★★★★☆ 4.0+</option>
+                <option value="3.5" {% if query.min_rating == 3.5 %}selected{% endif %}>★★★½☆ 3.5+</option>
+                <option value="3.0" {% if query.min_rating == 3.0 %}selected{% endif %}>★★★☆☆ 3.0+</option>
+            </select>
+        </div>
+
+        <button type="submit">Apply Filters</button>
+        <a href="{{ url_for('browse') }}">Clear All</a>
+    </form>
+</aside>
+
+<div class="container" style="padding-top:36px;padding-bottom:56px">
+    <div>
+        {% if restaurants %}
+            <h2>Restaurants</h2>
+            <ul>
+                {% for r in restaurants %}
+                    <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}">
+                        <li>{{ r.name }}</li>
+                        <span class="text-muted" style="font-size:.8rem">
+                            {{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}
+                        </span>
+                    </a>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No restaurants found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

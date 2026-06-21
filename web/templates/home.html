@@ -1,17 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Browse Restaurants{% endblock %}
+{% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top:36px;padding-bottom:56px">
+
+<section class="section">
+    <form class="hero__search" action="{{ url_for('browse') }}" method="GET">
+        <input type="text" name="q" placeholder="Restaurant name, cuisine, city…">
+        <button type="submit">Search</button>
+    </form>
+</section>
+
+
+<!--Browse by category-->
+<section class="section">
+  <div class="container">
     <div>
-        {% if restaurants %}
-            <h2>Restaurants</h2>
+      <h2>Browse by Cuisine</h2>
+      <a href="{{ url_for('browse') }}" style="font-size:.9rem">
+        View all &rarr;
+      </a>
+    </div>
+
+    <div class="container">
+      {% for cat in categories %}
+        <a href="{{ url_for('browse', category=cat.category_id) }}">
+            {{ cat.category }}
+            <span style="font-size:.8em">({{ cat.restaurant_count }})</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div>
+            <h2>Top Rated Restaurants</h2>
+        </div>
+
+        {% if top_restaurants %}
             <ul>
-                {% for r in restaurants %}
+                {% for r in top_restaurants %}
                     <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}">
                         <li>{{ r.name }}</li>
                         <span class="text-muted" style="font-size:.8rem">
-                            {{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}
+                            {{ r.avg_rating }} stars ({{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %})    
                         </span>
                     </a>
                 {% endfor %}
@@ -20,6 +53,5 @@
             <p>No restaurants found.</p>
         {% endif %}
     </div>
-</div>
+</section>
 {% endblock %}
-

@@ -71,10 +71,29 @@ CREATE TABLE IF NOT EXISTS menu_item_reviews (
     user_id INTEGER NOT NULL,
     rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
     content TEXT,
-    helpful_count INTEGER DEFAULT 0,
+    upvotes INTEGER DEFAULT 0,
     UNIQUE (user_id, item_id),
     FOREIGN KEY (item_id)  REFERENCES menu_items(item_id),
     FOREIGN KEY (user_id)  REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- many to many with users and restaurants
+CREATE TABLE IF NOT EXISTS favorites (
+    favorite_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    restaurant_id INTEGER NOT NULL,
+    UNIQUE (user_id, restaurant_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+);
+
+CREATE TABLE IF NOT EXISTS upvotes (
+    vote_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    review_id INTEGER NOT NULL,
+    review_type TEXT NOT NULL CHECK(review_type IN ('restaurant', 'menu_item')),
+    upvotes INTEGER NOT NULL CHECK(upvotes IN (0, 1)),
+    UNIQUE (user_id, review_id, review_type),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 
@@ -180,4 +199,5 @@ INSERT OR IGNORE INTO categories (name, description) VALUES
 ('Desserts',       'Sweet treats and desserts'),
 ('Breakfast',      'Breakfast and brunch'),
 ('Sandwiches',     'Sandwiches and subs'),
-('Korean',         'Korean cuisine');
+('Korean',         'Korean cuisine'),
+('Others',         'Other cuisines');

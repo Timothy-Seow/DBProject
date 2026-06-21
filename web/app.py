@@ -16,11 +16,34 @@ def current_user():
 def inject_user():
     return {"user": current_user()}
 
-# home page currently will display all restaurants
-@app.route('/')
+
+@app.route("/")
 def home():
-    restaurants = db.get_restaurants()
-    return render_template('home.html', restaurants=restaurants)
+    top_restaurants = db.get_top_rated_restaurants(limit=5, min_reviews=1)
+    categories = db.get_category_summary()
+    return render_template("home.html", top_restaurants=top_restaurants, categories=categories)
+
+# browse restaurants page - wil return list of restaurants based on search or filter
+@app.route('/browse')
+def browse():
+    keyword = request.args.get("q", "").strip()
+    category = request.args.get("category", None, type=int)
+    price = request.args.get("price", "").strip()
+    min_rating = request.args.get("min_rating", None, type=float)
+    city = request.args.get("city", "").strip()
+
+    results = db.search_restaurants(
+        keyword = keyword or None,
+        category_id = category,
+        price_range = price or None,
+        min_rating = min_rating,
+        city = city or None,
+    )
+    categories = db.get_category_summary()
+
+    query = dict(q=keyword, category=category, price=price, min_rating=min_rating, city=city)
+
+    return render_template("browse.html", restaurants=results, categories=categories, query=query)
 
 # for when user clicks on a specific restaurant
 @app.route("/restaurant/<int:rid>")
@@ -28,7 +51,7 @@ def restaurant(rid):
     restaurant = db.get_restaurant_by_id(rid)
     if not restaurant:
         flash("Restaurant not found.", "error")
-        return redirect(url_for('home'))
+        return redirect(url_for('browse'))
     
     menu = db.get_menu_by_restaurant(rid)
     reviews = db.get_reviews_for_restaurant(rid)
@@ -39,11 +62,27 @@ def restaurant(rid):
         menu_sections.setdefault(sec, []).append(i)
 
     user_item_reviews = {}
+    is_fav = False
     if current_user():
         uid = current_user()["user_id"]
         user_item_reviews = db.get_user_item_reviews_for_restaurant(uid, rid)
-    
-    return render_template('restaurant.html', restaurant=restaurant, menu_sections=menu_sections, reviews=reviews, user_item_reviews=user_item_reviews)
+        favs = db.get_user_favorites(uid)
+        is_fav = any(f["restaurant_id"] == rid for f in favs)
+
+    return render_template('restaurant.html', restaurant=restaurant, menu_sections=menu_sections, reviews=reviews, user_item_reviews=user_item_reviews, is_fav=is_fav)
+
+# toggle save to favorite
+@app.route("/restaurant/<int:rid>/favorite", methods=["POST"])
+def toggle_favorite(rid):
+    uid = current_user()["user_id"]
+    action = request.form.get("action")
+    if action == "add":
+        db.add_favorite(uid, rid)
+        flash("Added to favourites", "success")
+    else:
+        db.remove_favorite(uid, rid)
+        flash("Removed from favourites.", "info")
+    return redirect(url_for("restaurant", rid=rid))
 
 # restaurant review route
 @app.route("/restaurant/<int:rid>/review", methods=["POST"])
@@ -64,6 +103,7 @@ def submit_review(rid):
         flash("Error Submitting", "error")
     return redirect(url_for("restaurant", rid=rid))
 
+# editing a review
 @app.route("/review/<int:rev_id>/edit", methods=["POST"])
 def update_review(rev_id):
     rating = request.form.get("rating",  type=int)
@@ -107,6 +147,7 @@ def submit_item_review(iid):
         flash("Could not submit review — you may already have reviewed this item.", "error")
     return redirect(url_for("restaurant", rid=rid))
 
+# editing a review
 @app.route("/item-review/<int:rev_id>/edit", methods=["POST"])
 def update_item_review(rev_id):
     rating = request.form.get("rating",  type=int)
@@ -153,6 +194,15 @@ def delete_review(rev_id, rev_type):
         db.delete_menu_item_review(rev_id, uid)
         flash("Review deleted.", "info")
         return redirect(url_for("restaurant", rid=rid))
+    
+# upvoting review
+@app.route("/review/<int:rev_id>/vote", methods=["POST"])
+def vote_review(rev_id):
+    review_type = request.form.get("review_type", "restaurant")
+    rid = request.form.get("restaurant_id", type=int)
+    uid = current_user()["user_id"]
+    db.vote_on_review(uid, rev_id, review_type)
+    return redirect(url_for("restaurant", rid=rid))
 
 # for the LOGIN / SIGNUP process
 @app.route("/auth", methods=["GET", "POST"])
@@ -201,14 +251,14 @@ def auth():
 def profile():
     uid = current_user()["user_id"]
     history = db.get_user_review_history(uid)
-    print(f"INSIDE DICK IS: {history}")
-    return render_template("profile.html", history=history)
+    favs = db.get_user_favorites(uid)
+    return render_template("profile.html", history=history, favs=favs)
 
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     flash("Logged out.", "info")
-    return redirect(url_for("home"))
+    return redirect(url_for("browse"))
 
 if __name__ == '__main__':
     print("Running")

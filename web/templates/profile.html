@@ -3,7 +3,8 @@
 
 {% block content %}
 
-<div class="profile-header">
+<div id="profile-header">
+    <h2>Account Information</h2>
     <div class="profile-name">{{ user.username }}</div>
     <div class="profile-email">{{ user.email }}</div>
     <div class="profile-stats">
@@ -21,7 +22,8 @@
     </div>
 </div>
 
-<div class="reviews_container">
+<div id="reviews_container">
+    <h2>Reviews</h2>
     {% if history %}
         {% for review in history %}
         <div class="review">
@@ -118,6 +120,22 @@
         <div>
             <p>No reviews yet.</p>
         </div>
+    {% endif %}
+</div>
+
+<div id="favorites-container">
+
+    <h2>Favorite Restaurants</h2>
+    {% if favs %}
+        <ul>
+            {% for f in favs %}
+                <a href="{{ url_for('restaurant', rid=f.restaurant_id) }}">
+                    <li>{{ f.name }}</li>
+                </a>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No favorite restaurants yet.</p>
     {% endif %}
 </div>
 

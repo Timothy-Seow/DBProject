@@ -65,17 +65,44 @@ def authenticate_user(name: str, password: str) -> Optional[Dict]:
         return None
 
 # RESTAURANT STUFF
-def get_restaurants() -> List[Dict]:
+# search restaurants with optional filters
+def search_restaurants(keyword: str = None, category_id: int = None, price_range: str = None, min_rating: float = None,
+                        city: str = None) -> List[Dict]:
     try:
+        sql = ("""
+            SELECT r.restaurant_id, r.name, c.name AS category, r.price_range, r.avg_rating, r.total_reviews, r.city, r.state, r.full_address 
+            FROM restaurants r 
+            LEFT JOIN categories c ON r.category_id = c.category_id
+            WHERE 1=1
+            """
+        )
+
+        params: List[Any] = []
+        if keyword:
+            sql += "AND r.name LIKE ? "
+            params.append(f"%{keyword}%")
+        if category_id:
+            sql += "AND r.category_id = ? "
+            params.append(category_id)
+        if price_range:
+            sql += "AND r.price_range = ? "
+            params.append(price_range)
+        if min_rating is not None:
+            sql += "AND r.avg_rating >= ? "
+            params.append(min_rating)
+        if city:
+            sql += "AND r.city LIKE ? "
+            params.append(f"%{city}%")
+
+        sql += "ORDER BY r.avg_rating DESC, r.total_reviews DESC"
+
         with get_connection() as conn:
-            cur = conn.execute("SELECT * FROM restaurants")
-        return cur.fetchall()
+            cur = conn.execute(sql, params)
+            return cur.fetchall()
     except sqlite3.Error as e:
-        print(f"Error fetching restaurants: {e}")
+        print(f"Error searching restaurants: {e}")
         return []
-    finally:
-        if conn:
-            conn.close()
+
 
 def get_restaurant_by_id(rid: int) -> Optional[Dict]:
     try:
@@ -107,6 +134,47 @@ def get_menu_by_restaurant(rid: int) -> List[Dict]:
         if conn:
             conn.close()
 
+# for getting all the differnet categories and their avg ratings, review counts for the homepage
+def get_category_summary() -> List[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT c.name AS category, 
+                COUNT(DISTINCT r.restaurant_id) AS restaurant_count, 
+                ROUND(AVG(r.avg_rating), 2) AS avg_rating, 
+                SUM(r.total_reviews) AS total_reviews, c.category_id
+                FROM categories c
+                JOIN restaurants r ON r.category_id = c.category_id
+                GROUP BY c.category_id, c.name
+                ORDER BY avg_rating DESC
+                """,
+            )
+            return cur.fetchall()
+    except sqlite3.Error as e:
+        print(f"Error getting category summary: {e}")
+        return []
+
+# to get the top rated restaurants for the homepage. Only includes restaurants with at least 5 reviews.
+def get_top_rated_restaurants(limit: int = 5, min_reviews: int = 5) -> List[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT r.restaurant_id, r.name, c.name AS category, r.price_range, r.avg_rating, r.total_reviews, r.city, r.state
+                FROM restaurants r
+                LEFT JOIN categories c ON r.category_id = c.category_id
+                WHERE r.restaurant_id IN 
+                (SELECT restaurant_id FROM restaurant_reviews GROUP BY restaurant_id HAVING COUNT(*) >= ?)
+                ORDER BY r.avg_rating DESC, r.total_reviews DESC
+                LIMIT ?
+                """,
+                (min_reviews, limit),
+            )
+            return cur.fetchall()
+    except sqlite3.Error as e:
+        print(f"Error getting top rated restaurants: {e}")
+        return []
+
+
 def create_restaurant_review(restaurant_id: int, user_id: int, rating: int, title: str = None, content: str = None) -> Optional[int]:
     if not 1 <= rating <= 5:
         print("Error rating not selected")
@@ -132,7 +200,7 @@ def get_reviews_for_restaurant(restaurant_id: int) -> List[Dict]:
     try:
         with get_connection() as conn:
             cur = conn.execute("""
-                SELECT r.review_id, r.rating, r.title, r.content, u.username, u.user_id
+                SELECT r.review_id, r.rating, r.title, r.content, u.username, u.user_id, r.upvotes
                 FROM restaurant_reviews r
                 JOIN users u ON r.user_id = u.user_id
                 WHERE r.restaurant_id = ?
@@ -281,3 +349,104 @@ def update_menu_item_review(review_id: int, user_id: int, rating: int = None, co
     except sqlite3.Error as e:
         print(f"Error updating menu item review: {e}")
         return False
+
+# for upvoting reviews
+def vote_on_review(user_id: int, review_id: int, review_type: str) -> bool:
+    try:
+        with get_connection() as conn:
+            # Look up existing vote
+            cur = conn.execute("""
+                SELECT upvotes FROM upvotes
+                WHERE user_id = ? AND review_id = ? AND review_type = ?
+            """, 
+            (user_id, review_id, review_type))
+            row = cur.fetchone()
+
+            if row:
+                print(f"Existing vote found: {row['upvotes']}")
+                current = row["upvotes"]
+                new_value = 0 if current == 1 else 1
+                conn.execute("""
+                    UPDATE upvotes
+                    SET upvotes = ?
+                    WHERE user_id = ? AND review_id = ? AND review_type = ?
+                """, 
+                (new_value, user_id, review_id, review_type))
+
+                if new_value == 0:
+                    conn.execute("""
+                        UPDATE restaurant_reviews
+                        SET upvotes = upvotes - 1
+                        WHERE review_id = ?
+                    """, 
+                    (review_id,))
+                else:
+                    conn.execute("""
+                        UPDATE restaurant_reviews
+                        SET upvotes = upvotes + 1
+                        WHERE review_id = ?
+                    """, 
+                    (review_id,))
+            else:
+                print("No existing vote found. Inserting new vote.")
+                conn.execute("""
+                    INSERT INTO upvotes (user_id, review_id, review_type, upvotes)
+                    VALUES (?, ?, ?, 1)
+                """, 
+                (user_id, review_id, review_type))
+
+                conn.execute("""
+                    UPDATE restaurant_reviews
+                    SET upvotes = upvotes + 1
+                    WHERE review_id = ?
+                """, 
+                (review_id,))
+
+            return True
+    except sqlite3.Error as e:
+        print(f"Error voting on review: {e}")
+        return False
+    
+# saving and deleting favorite restaurants
+def add_favorite(user_id: int, restaurant_id: int) -> bool:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                INSERT OR IGNORE INTO favorites (user_id, restaurant_id)
+                VALUES (?, ?)
+                """,
+                (user_id, restaurant_id),
+            )
+            return cur.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Error adding to favorites: {e}")
+        return False
+
+def remove_favorite(user_id: int, restaurant_id: int) -> bool:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute(
+                "DELETE FROM favorites WHERE user_id = ? AND restaurant_id = ?",
+                (user_id, restaurant_id),
+            )
+            return cur.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Error removing from favorites: {e}")
+        return False
+
+def get_user_favorites(user_id: int) -> List[Dict]:
+    try:
+        with get_connection() as conn:
+            cur = conn.execute("""
+                SELECT r.restaurant_id, r.name, r.avg_rating, r.total_reviews, r.price_range, r.city, c.name AS category
+                FROM favorites f 
+                JOIN restaurants r ON f.restaurant_id = r.restaurant_id 
+                LEFT JOIN categories c ON r.category_id = c.category_id 
+                WHERE f.user_id = ?
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+    except sqlite3.Error as e:
+        print(f"Error getting user favorites: {e}")
+        return []

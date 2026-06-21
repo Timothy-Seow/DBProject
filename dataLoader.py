@@ -4,8 +4,8 @@ import re
 import pandas as pd
 import sqlite3
 
-RESTAURANT_LIMIT = 50
-MENU_ITEM_LIMIT = 2600
+RESTAURANT_LIMIT = 70
+MENU_ITEM_LIMIT = 4900
 
 # the actual cats from the dataset, buts mapped to ids
 CATEGORY_MAP = {
@@ -24,6 +24,7 @@ CATEGORY_MAP = {
     "breakfast":     13,
     "sandwich":      14,
     "korean":        15,
+    "others":        16,
 }
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "food_review.db")
@@ -67,7 +68,14 @@ def get_cityState(address):
             state = num[0]
     return city, state
 
-
+def map_category(raw: str):
+    if not raw:
+        return None
+    lower = raw.lower()
+    for keyword, cid in CATEGORY_MAP.items():
+        if keyword in lower:
+            return cid
+    return 16
 
 # ---------- Loading of restaurant data ----------
 def load_restaurants(filePath) -> dict:
@@ -89,20 +97,20 @@ def load_restaurants(filePath) -> dict:
         if not name:
             continue
 
-        catID = CATEGORY_MAP.get(clean_string(row.get("category")))
+        catID = map_category(row.get("category"))
         price = clean_string(row.get("price_range"), 4)
         address = clean_string(row.get("full_address"))
         lat = clean_float(row.get("latitude"))
         lng = clean_float(row.get("longitude"))
         city, state  = get_cityState(address)
-
+        print(f"category ID: {catID}")
         try:
             cur.execute("""
                 INSERT OR IGNORE INTO restaurants (name, category_id, price_range, full_address, city, state, latitude, longitude)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (name, catID, price, address, city, state, lat, lng))
 
-            print(f"Inserted restaurant: {name} with ID: {cur.lastrowid}")
+            #print(f"Inserted restaurant: {name} with ID: {cur.lastrowid}")
             if cur.lastrowid:
                 resIDs[name.lower()] = cur.lastrowid
                 total += 1
@@ -168,7 +176,7 @@ def load_menu_items(menuFilePath, resFilePath, nameToId):
                 VALUES (?, ?, ?, ?, ?)
             """, (currentResID, catID, itemName, desc, price))
             total += 1
-            print(f"Inserted menu item: {itemName}, menu ID: {cur.lastrowid} for restaurant ID: {currentResID}")
+            #print(f"Inserted menu item: {itemName}, menu ID: {cur.lastrowid} for restaurant ID: {currentResID}")
         except sqlite3.Error as e:
             print(f"[DEBUG] DB Error: {e}")
             errors += 1

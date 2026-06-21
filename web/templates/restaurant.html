@@ -6,6 +6,18 @@
     <h1>{{ restaurant.name }}</h1>
     <p>{{ restaurant.description }}</p>
 
+    <!-- toggle for favorite-->
+    <div style="margin-top:20px;display:flex;gap:10px">
+      {% if user %}
+        <form method="POST" action="{{ url_for('toggle_favorite', rid=restaurant.restaurant_id) }}">
+          <input type="hidden" name="action" value="{{ 'remove' if is_fav else 'add' }}">
+          <button type="submit">
+            {% if is_fav %}💛 Saved{% else %}🤍 Save{% endif %}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
     <h2>Menu</h2>
     {% if menu_sections %}
         {% for sect, items in menu_sections.items() %}
@@ -36,14 +48,13 @@
                                             <span style="font-size:.8rem;font-weight:700">{{ ir.rating }}/5</span>
                                         </div>
                                         <div style="display:flex;gap:6px">
-                                            <button onclick="toggleItemEdit({{ ir.review_id }})"
-                                                    class="btn btn--outline btn--sm" style="font-size:.75rem;padding:4px 10px">
+                                            <button onclick="toggleItemEdit({{ ir.review_id }})" style="font-size:.75rem;padding:4px 10px">
                                                 ✏ Edit
                                             </button>
                                             <form method="POST" action="{{ url_for('delete_review', rev_id=ir.review_id, rev_type='men_res') }}"
                                                 onsubmit="return confirm('Delete your review?')">
                                             <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
-                                            <button type="submit" class="btn btn--danger btn--sm" style="font-size:.75rem;padding:4px 10px">
+                                            <button type="submit" style="font-size:.75rem;padding:4px 10px">
                                                 🗑 Delete
                                             </button>
                                             </form>
@@ -148,6 +159,21 @@
                         <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
                         <button type="submit" class="btn btn--danger btn--sm">🗑 Delete</button>
                     </form>
+                {% endif %}
+
+                <!-- Cant vote for self -->
+                {% if user and user.user_id != review.user_id %}
+                <form method="POST" action="{{ url_for('vote_review', rev_id=review.review_id) }}">
+                    <input type="hidden" name="review_type" value="restaurant">
+                    <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
+                    <button type="submit" class="helpful-btn">
+                    👍 Helpful ({{ review.upvotes }})
+                    </button>
+                </form>
+                {% else %}
+                <span class="text-muted" style="font-size:.82rem">
+                    👍 {{ review.upvotes }} found helpful
+                </span>
                 {% endif %}
 
                 <!-- Inline edit form (hidden by default, owner only) -->

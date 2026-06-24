@@ -3,29 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Folio{% endblock %} · Folio</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   {% block head %}{% endblock %}
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="nav_links"></div>
-        <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('browse') }}">Browse</a>
+  <a href="{{ url_for('home') }}" class="navbar__brand">Folio</a>
 
-        {% if user %}
-            <a href="{{ url_for('profile') }}">Profile</a>
-            <a href="{{ url_for('logout') }}">Log out</a>
-        {% else %}
-            <a href="{{ url_for('auth') }}">Sign in</a>
-        {% endif %}
-    <div>
+  <div class="nav_links">
+    <a href="{{ url_for('home') }}">Home</a>
+    <a href="{{ url_for('browse') }}">Browse</a>
+    {% if user %}
+      <a href="{{ url_for('profile') }}">Profile</a>
+      <a href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+      <a href="{{ url_for('auth') }}">Sign in</a>
+    {% endif %}
+  </div>
+
+  <form class="navbar__search" action="{{ url_for('browse') }}" method="GET">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" name="q" placeholder="Search restaurants…">
+  </form>
 </nav>
 
-<!-- Flash messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <div class="container">
+    <div class="container" style="padding-top:12px">
       <ul class="flash-list">
         {% for category, message in messages %}
           <li class="flash flash--{{ category }}">{{ message }}</li>
@@ -38,7 +44,7 @@
 {% block content %}{% endblock %}
 
 <footer>
-    <p>&copy; Nigga website</p>
+  <p>&copy; {{ 2025 }} Folio · Restaurant Discovery</p>
 </footer>
 
 {% block scripts %}{% endblock %}

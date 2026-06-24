@@ -2,235 +2,250 @@
 {% block title %}{{ restaurant.name }}{% endblock %}
 
 {% block content %}
-<div class="restaurant-container" style="padding-top:36px;padding-bottom:56px">
-    <h1>{{ restaurant.name }}</h1>
-    <p>{{ restaurant.description }}</p>
+<div class="restaurant-container">
 
-    <!-- toggle for favorite-->
-    <div style="margin-top:20px;display:flex;gap:10px">
+  <!-- Hero / header -->
+  <div class="restaurant-hero">
+    <h1>{{ restaurant.name }}</h1>
+    {% if restaurant.description %}
+      <p>{{ restaurant.description }}</p>
+    {% endif %}
+    <div class="restaurant-hero__actions">
       {% if user %}
         <form method="POST" action="{{ url_for('toggle_favorite', rid=restaurant.restaurant_id) }}">
           <input type="hidden" name="action" value="{{ 'remove' if is_fav else 'add' }}">
-          <button type="submit">
-            {% if is_fav %}💛 Saved{% else %}🤍 Save{% endif %}
+          <button type="submit" class="btn btn--fav {% if is_fav %}saved{% endif %}">
+            {% if is_fav %}♥ Saved{% else %}♡ Save{% endif %}
           </button>
         </form>
       {% endif %}
     </div>
+  </div>
 
-    <h2>Menu</h2>
-    {% if menu_sections %}
-        {% for sect, items in menu_sections.items() %}
-            <h3>{{ sect }}</h3>
-            <ul>
-                {% for item in items %}
-                    <li>
-                        <strong>{{ item.name }} {% if item.description != 'nan' %}-{{ item.description }}{% endif %}</strong>
-                    </li>
-                    {% if item.total_reviews > 0 %}
-                        <div class="menu-item-rating">
-                            ★ {{ "%.1f"|format(item.avg_rating|float) }}
-                            ({{ item.total_reviews }} review{% if item.total_reviews != 1 %}s{% endif %})
-                        </div>
-                    {% endif %}
-                    {% if user %}
-                        {% set ir = user_item_reviews.get(item.item_id) %}
-                        {% if ir %}
-                            <!-- User already reviewed this item -->
-                            <div style="margin-top:8px; padding:10px 12px; border:1px solid var(--tan); width:fit-content;">
-                                <div id="ir-view-{{ ir.review_id }}">
-                                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                                        <div>
-                                            <span style="font-size:.78rem;font-weight:600;color:var(--orange)">Your review</span>
-                                            <span style="margin-left:6px;color:var(--star);font-size:.9rem">
-                                                {% for i in range(1,6) %}★{% endfor %}
-                                            </span>
-                                            <span style="font-size:.8rem;font-weight:700">{{ ir.rating }}/5</span>
-                                        </div>
-                                        <div style="display:flex;gap:6px">
-                                            <button onclick="toggleItemEdit({{ ir.review_id }})" style="font-size:.75rem;padding:4px 10px">
-                                                ✏ Edit
-                                            </button>
-                                            <form method="POST" action="{{ url_for('delete_review', rev_id=ir.review_id, rev_type='men_res') }}"
-                                                onsubmit="return confirm('Delete your review?')">
-                                            <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
-                                            <button type="submit" style="font-size:.75rem;padding:4px 10px">
-                                                🗑 Delete
-                                            </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                    {% if ir.content %}
-                                        <div style="font-size:.82rem;color:var(--brown);margin-top:6px">
-                                            {{ ir.content }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                <!-- Inline edit form (hidden by default) -->
-                                <div id="ir-edit-{{ ir.review_id }}" style="display:none">
-                                    <form method="POST" action="{{ url_for('update_item_review', rev_id=ir.review_id) }}">
-                                        <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
-                                        <div class="star-picker" style="margin-bottom:8px">
-                                            {% for s in [5,4,3,2,1] %}
-                                            <input type="radio"
-                                                    id="ire-{{ ir.review_id }}-{{ s }}"
-                                                    name="rating" value="{{ s }}"
-                                                    {% if ir.rating == s %}checked{% endif %} required>
-                                            <label for="ire-{{ ir.review_id }}-{{ s }}">★</label>
-                                            {% endfor %}
-                                        </div>
-                                        <textarea name="content" class="form-control" rows="2"
-                                                    style="font-size:.85rem">{{ ir.content or '' }}</textarea>
-                                        <div style="display:flex;gap:6px;margin-top:8px">
-                                            <button type="submit" class="btn btn--primary btn--sm">Save</button>
-                                            <button type="button" class="btn btn--ghost btn--sm"
-                                                    onclick="toggleItemEdit({{ ir.review_id }})">Cancel</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        {% else %}
-                            <details style="margin-top:8px">
-                                <summary style="font-size:.8rem;color:var(--orange);cursor:pointer;font-weight:600">
-                                    + Write a review for this dish
-                                </summary>
-                                <form method="POST" action="{{ url_for('submit_item_review', iid=item.item_id) }}"
-                                    style="margin-top:8px;padding:12px;background:var(--cream); border-radius:var(--radius-sm);border:1px solid var(--tan)">
-                                    <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
-                                    <div class="star-picker" style="margin-bottom:8px">
-                                        {% for s in [5,4,3,2,1] %}
-                                            <input type="radio" id="is-{{ item.item_id }}-{{ s }}" name="rating" value="{{ s }}" required>
-                                            <label for="is-{{ item.item_id }}-{{ s }}">★</label>
-                                        {% endfor %}
-                                    </div>
-                                    <textarea name="content" class="form-control" rows="2" placeholder="What did you think?"></textarea>
-                                    <button type="submit" class="btn btn--primary btn--sm mt-8">
-                                        Submit
-                                    </button>
-                                </form>
-                            </details>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </ul>
-        {% endfor %}
-    {% else %}
-        <p>No menu items available.</p>
-    {% endif %}
-</div>
+  <!-- Menu -->
+  <h2 style="margin-bottom:24px">Menu</h2>
+  {% if menu_sections %}
+    {% for sect, items in menu_sections.items() %}
+      <div class="menu-section">
+        <h3>{{ sect }}</h3>
+        <ul>
+          {% for item in items %}
+            <li class="menu-item">
+              <div class="menu-item__name">{{ item.name }}</div>
+              {% if item.description != 'nan' %}
+                <div class="menu-item__desc">{{ item.description }}</div>
+              {% endif %}
 
-<div style="margin-top:40px">
-    {% if user %}
-        <div>
-            <h3>Write a Review</h3>
-            <form method="POST" action="{{ url_for('submit_review', rid=restaurant.restaurant_id) }}">
-                <div>
-                    <label>Your Rating</label>
-                    <div class="star-picker">
-                        {% for s in [5,4,3,2,1] %}
-                        <input type="radio" id="s{{ s }}" name="rating" value="{{ s }}" required>
-                        <label for="s{{ s }}">★</label>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div>
-                    <label>Title <span class="text-muted">(optional)</span></label>
-                    <input type="text" name="title" placeholder="e.g. Best food ever">
-                </div>
-                <div>
-                    <label>Your Review</label>
-                    <textarea name="content" class="form-control" rows="4" placeholder="Your thoughts..."></textarea>
-                </div>
-                <button type="submit" class="btn btn--primary">Post</button>
-            </form>           
-        </div>
-    {% endif %}
-</div>
-
-<h2>Reviews</h2>
-{% if reviews %}
-    <ul>
-        {% for review in reviews %}
-            <li>
-                <strong>{{ review.username }}</strong> rated it {{ review.rating }}/5 - {{ review.content }}
-                {% if user and user.username == review.username %}
-                    <button onclick="toggleRestEdit({{ review.review_id }})">✏ Edit</button>
-                    <form method="POST" action="{{ url_for('delete_review', rev_id=review.review_id, rev_type='res') }}" onsubmit="return confirm('Delete your review?')">
-                        <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
-                        <button type="submit" class="btn btn--danger btn--sm">🗑 Delete</button>
-                    </form>
-                {% endif %}
-
-                <!-- Cant vote for self -->
-                {% if user and user.user_id != review.user_id %}
-                <form method="POST" action="{{ url_for('vote_review', rev_id=review.review_id) }}">
-                    <input type="hidden" name="review_type" value="restaurant">
-                    <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
-                    <button type="submit" class="helpful-btn">
-                    👍 Helpful ({{ review.upvotes }})
-                    </button>
-                </form>
-                {% else %}
-                <span class="text-muted" style="font-size:.82rem">
-                    👍 {{ review.upvotes }} found helpful
+              {% if item.total_reviews > 0 %}
+                <span class="menu-item-rating">
+                  {{ "%.1f"|format(item.avg_rating|float) }}
+                  ({{ item.total_reviews }} review{% if item.total_reviews != 1 %}s{% endif %})
                 </span>
-                {% endif %}
+              {% endif %}
 
-                <!-- Inline edit form (hidden by default, owner only) -->
-                {% if user and user.username == review.username %}
-                    <div id="rv-edit-{{ review.review_id }}" style="display:none; margin-top:12px; padding:16px; border:1px solid var(--tan);">
-                        <form method="POST" action="{{ url_for('update_review', rev_id=review.review_id) }}">
+              {% if user %}
+                {% set ir = user_item_reviews.get(item.item_id) %}
+                {% if ir %}
+                  <div class="user-item-review">
+                    <div id="ir-view-{{ ir.review_id }}">
+                      <div class="user-item-review__header">
+                        <div style="display:flex;align-items:center;gap:8px">
+                          <span class="your-review-tag">Your review</span>
+                          <span style="color:var(--star);font-size:.9rem">
+                            {% for i in range(1,6) %}★{% endfor %}
+                          </span>
+                          <span style="font-size:.8rem;color:var(--color-text-3)">{{ ir.rating }}/5</span>
+                        </div>
+                        <div style="display:flex;gap:6px">
+                          <button onclick="toggleItemEdit({{ ir.review_id }})" class="btn btn--ghost btn--sm">✏ Edit</button>
+                          <form method="POST" action="{{ url_for('delete_review', rev_id=ir.review_id, rev_type='men_res') }}"
+                                onsubmit="return confirm('Delete your review?')">
                             <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
-
-                            <div class="form-group">
-                                <label>Rating</label>
-                                <div class="star-picker">
-                                    {% for s in [5,4,3,2,1] %}
-                                        <input type="radio" id="re-{{ review.review_id }}-{{ s }}" name="rating" value="{{ s }}"
-                                            {% if review.rating == s %}checked{% endif %} required>
-                                        <label for="re-{{ review.review_id }}-{{ s }}">★</label>
-                                    {% endfor %}
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Title</label>
-                                <input type="text" name="title" class="form-control"
-                                    value="{{ review.title or '' }}"
-                                    placeholder="Summarise your experience">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Review</label>
-                                <textarea name="content" class="form-control" rows="3">{{ review.content or '' }}</textarea>
-                            </div>
-
-                            <div style="display:flex;gap:8px">
-                                <button type="submit" class="btn btn--primary btn--sm">Save changes</button>
-                                <button type="button" class="btn btn--ghost btn--sm" onclick="toggleRestEdit({{ review.review_id }})">Cancel</button>
-                            </div>
-                        </form>
+                            <button type="submit" class="btn btn--danger btn--sm">🗑</button>
+                          </form>
+                        </div>
+                      </div>
+                      {% if ir.content %}
+                        <p style="font-size:.85rem;margin-top:4px">{{ ir.content }}</p>
+                      {% endif %}
                     </div>
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No reviews yet.</p>
-{% endif %}
 
+                    <div id="ir-edit-{{ ir.review_id }}" style="display:none">
+                      <form method="POST" action="{{ url_for('update_item_review', rev_id=ir.review_id) }}">
+                        <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
+                        <div class="star-picker">
+                          {% for s in [5,4,3,2,1] %}
+                            <input type="radio" id="ire-{{ ir.review_id }}-{{ s }}" name="rating" value="{{ s }}"
+                                   {% if ir.rating == s %}checked{% endif %} required>
+                            <label for="ire-{{ ir.review_id }}-{{ s }}">★</label>
+                          {% endfor %}
+                        </div>
+                        <textarea name="content" class="form-control" rows="2">{{ ir.content or '' }}</textarea>
+                        <div style="display:flex;gap:6px;margin-top:8px">
+                          <button type="submit" class="btn btn--primary btn--sm">Save</button>
+                          <button type="button" class="btn btn--ghost btn--sm"
+                                  onclick="toggleItemEdit({{ ir.review_id }})">Cancel</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+
+                {% else %}
+                  <details class="dish-review-toggle">
+                    <summary>+ Write a review for this dish</summary>
+                    <div class="dish-review-form">
+                      <form method="POST" action="{{ url_for('submit_item_review', iid=item.item_id) }}">
+                        <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
+                        <div class="star-picker">
+                          {% for s in [5,4,3,2,1] %}
+                            <input type="radio" id="is-{{ item.item_id }}-{{ s }}" name="rating" value="{{ s }}" required>
+                            <label for="is-{{ item.item_id }}-{{ s }}">★</label>
+                          {% endfor %}
+                        </div>
+                        <textarea name="content" class="form-control" rows="2" placeholder="What did you think?"></textarea>
+                        <button type="submit" class="btn btn--primary btn--sm mt-8">Submit</button>
+                      </form>
+                    </div>
+                  </details>
+                {% endif %}
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">No menu items available.</div>
+  {% endif %}
+
+  <!-- Reviews section -->
+  <div class="reviews-section">
+    {% if user %}
+      <div class="write-review-panel">
+        <h3>Write a Review</h3>
+        <form method="POST" action="{{ url_for('submit_review', rid=restaurant.restaurant_id) }}">
+          <div class="form-group">
+            <label>Your Rating</label>
+            <div class="star-picker">
+              {% for s in [5,4,3,2,1] %}
+                <input type="radio" id="s{{ s }}" name="rating" value="{{ s }}" required>
+                <label for="s{{ s }}">★</label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Title <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+            <input type="text" name="title" class="form-control" placeholder="Summarise your experience">
+          </div>
+          <div class="form-group">
+            <label>Your Review</label>
+            <textarea name="content" class="form-control" rows="4" placeholder="Your thoughts…"></textarea>
+          </div>
+          <button type="submit" class="btn btn--primary">Post Review</button>
+        </form>
+      </div>
+    {% endif %}
+
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Community</p>
+        <h2>Reviews</h2>
+      </div>
+    </div>
+
+    {% if reviews %}
+      <ul>
+        {% for review in reviews %}
+          <li class="review-card">
+            <div class="review-card__header">
+              <div>
+                <span class="review-card__user">{{ review.username }}</span>
+                <div class="review-card__meta" style="display:flex;align-items:center;gap:6px;margin-top:3px">
+                  <span class="review-card__stars">
+                    {% for i in range(review.rating) %}★{% endfor %}
+                  </span>
+                  <span class="review-card__rating">{{ review.rating }}/5</span>
+                </div>
+              </div>
+              {% if user and user.username == review.username %}
+                <div style="display:flex;gap:6px">
+                  <button onclick="toggleRestEdit({{ review.review_id }})" class="btn btn--ghost btn--sm">✏ Edit</button>
+                  <form method="POST" action="{{ url_for('delete_review', rev_id=review.review_id, rev_type='res') }}"
+                        onsubmit="return confirm('Delete your review?')">
+                    <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
+                    <button type="submit" class="btn btn--danger btn--sm">🗑</button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
+
+            {% if review.title %}
+              <div class="review-card__title">{{ review.title }}</div>
+            {% endif %}
+            {% if review.content %}
+              <p class="review-card__body">{{ review.content }}</p>
+            {% endif %}
+
+            <div class="review-card__actions">
+              {% if user and user.user_id != review.user_id %}
+                <form method="POST" action="{{ url_for('vote_review', rev_id=review.review_id) }}">
+                  <input type="hidden" name="review_type" value="restaurant">
+                  <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
+                  <button type="submit" class="helpful-btn">👍 Helpful ({{ review.upvotes }})</button>
+                </form>
+              {% else %}
+                <span class="text-muted" style="font-size:.8rem">👍 {{ review.upvotes }} found helpful</span>
+              {% endif %}
+            </div>
+
+            {% if user and user.username == review.username %}
+              <div id="rv-edit-{{ review.review_id }}" class="review-edit-panel" style="display:none">
+                <form method="POST" action="{{ url_for('update_review', rev_id=review.review_id) }}">
+                  <input type="hidden" name="restaurant_id" value="{{ restaurant.restaurant_id }}">
+                  <div class="form-group">
+                    <label>Rating</label>
+                    <div class="star-picker">
+                      {% for s in [5,4,3,2,1] %}
+                        <input type="radio" id="re-{{ review.review_id }}-{{ s }}" name="rating" value="{{ s }}"
+                               {% if review.rating == s %}checked{% endif %} required>
+                        <label for="re-{{ review.review_id }}-{{ s }}">★</label>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" class="form-control"
+                           value="{{ review.title or '' }}" placeholder="Summarise your experience">
+                  </div>
+                  <div class="form-group">
+                    <label>Review</label>
+                    <textarea name="content" class="form-control" rows="3">{{ review.content or '' }}</textarea>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button type="submit" class="btn btn--primary btn--sm">Save changes</button>
+                    <button type="button" class="btn btn--ghost btn--sm"
+                            onclick="toggleRestEdit({{ review.review_id }})">Cancel</button>
+                  </div>
+                </form>
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state">No reviews yet. Be the first!</div>
+    {% endif %}
+  </div>
+
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  /* Toggle the inline edit form for a restaurant review */
   function toggleRestEdit(id) {
     const edit = document.getElementById('rv-edit-' + id);
-    const showing = edit.style.display !== 'none';
-    edit.style.display = showing ? 'none' : '';
+    edit.style.display = edit.style.display !== 'none' ? 'none' : '';
   }
-
-  /* Toggle the inline edit form for a menu item review */
   function toggleItemEdit(id) {
     const view = document.getElementById('ir-view-' + id);
     const edit = document.getElementById('ir-edit-' + id);

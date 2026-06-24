@@ -2,62 +2,78 @@
 {% block title %}Browse Restaurants{% endblock %}
 
 {% block content %}
-<aside class="sidebar">
+<div class="browse-layout">
+
+  <!-- Sidebar filters -->
+  <aside class="sidebar">
     <form class="filter-panel" method="GET" action="{{ url_for('browse') }}">
-        <h3>Filters</h3>
+      <h3>Filters</h3>
 
-        <div class="filter-group">
-          <label>Keyword</label>
-          <input type="text" name="q" class="form-control" value="{{ query.q or '' }}" placeholder="Name or keyword">
-        </div>
+      <div class="filter-group">
+        <label for="q">Keyword</label>
+        <input type="text" id="q" name="q" class="form-control"
+               value="{{ query.q or '' }}" placeholder="Name or keyword">
+      </div>
 
-        <div class="filter-group">
-          <label>Category</label>
-          <select name="category">
-            <option value="">All categories</option>
-            {% for cat in categories %}
-                <option value="{{ loop.index }}"
-                    {% if query.category == loop.index %}selected{% endif %}>
-                    {{ cat.category }} ({{ cat.restaurant_count }})
-                </option>
-            {% endfor %}
-          </select>
-        </div>
+      <div class="filter-group">
+        <label for="category">Category</label>
+        <select id="category" name="category" class="form-control">
+          <option value="">All categories</option>
+          {% for cat in categories %}
+            <option value="{{ loop.index }}"
+              {% if query.category == loop.index %}selected{% endif %}>
+              {{ cat.category }} ({{ cat.restaurant_count }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
 
-        <div class="filter-group">
-            <label>Min. Rating</label>
-            <select name="min_rating">
-                <option value="">Any rating</option>
-                <option value="4.5" {% if query.min_rating == 4.5 %}selected{% endif %}>★★★★★ 4.5+</option>
-                <option value="4.0" {% if query.min_rating == 4.0 %}selected{% endif %}>★★★★☆ 4.0+</option>
-                <option value="3.5" {% if query.min_rating == 3.5 %}selected{% endif %}>★★★½☆ 3.5+</option>
-                <option value="3.0" {% if query.min_rating == 3.0 %}selected{% endif %}>★★★☆☆ 3.0+</option>
-            </select>
-        </div>
+      <div class="filter-group">
+        <label for="min_rating">Min. Rating</label>
+        <select id="min_rating" name="min_rating" class="form-control">
+          <option value="">Any rating</option>
+          <option value="4.5" {% if query.min_rating == 4.5 %}selected{% endif %}>★★★★★ 4.5+</option>
+          <option value="4.0" {% if query.min_rating == 4.0 %}selected{% endif %}>★★★★☆ 4.0+</option>
+          <option value="3.5" {% if query.min_rating == 3.5 %}selected{% endif %}>★★★½☆ 3.5+</option>
+          <option value="3.0" {% if query.min_rating == 3.0 %}selected{% endif %}>★★★☆☆ 3.0+</option>
+        </select>
+      </div>
 
-        <button type="submit">Apply Filters</button>
-        <a href="{{ url_for('browse') }}">Clear All</a>
+      <button type="submit" class="btn btn--primary">Apply Filters</button>
+      <a href="{{ url_for('browse') }}" class="clear-link">Clear all</a>
     </form>
-</aside>
+  </aside>
 
-<div class="container" style="padding-top:36px;padding-bottom:56px">
-    <div>
-        {% if restaurants %}
-            <h2>Restaurants</h2>
-            <ul>
-                {% for r in restaurants %}
-                    <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}">
-                        <li>{{ r.name }}</li>
-                        <span class="text-muted" style="font-size:.8rem">
-                            {{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}
-                        </span>
-                    </a>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No restaurants found.</p>
-        {% endif %}
+  <!-- Results -->
+  <div class="browse-results">
+    <div class="section-header" style="margin-bottom:20px">
+      <div>
+        <p class="eyebrow">Results</p>
+        <h2>Restaurants</h2>
+      </div>
     </div>
+
+    {% if restaurants %}
+      <ul class="restaurant-list">
+        {% for r in restaurants %}
+          <li>
+            <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}" class="restaurant-card">
+              <div class="restaurant-card__icon">🍽</div>
+              <div class="restaurant-card__body">
+                <div class="restaurant-card__name">{{ r.name }}</div>
+                <div class="restaurant-card__meta">
+                  <span>{{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}</span>
+                </div>
+              </div>
+              <span class="restaurant-card__arrow">›</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state">No restaurants match your filters.</div>
+    {% endif %}
+  </div>
+
 </div>
 {% endblock %}
-

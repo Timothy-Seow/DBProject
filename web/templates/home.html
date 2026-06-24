@@ -3,55 +3,76 @@
 
 {% block content %}
 
-<section class="section">
-    <form class="hero__search" action="{{ url_for('browse') }}" method="GET">
-        <input type="text" name="q" placeholder="Restaurant name, cuisine, city…">
-        <button type="submit">Search</button>
-    </form>
+<!-- Hero search -->
+<section class="hero">
+  <p class="eyebrow">Find your next meal</p>
+  <h1 class="hero__title">Discover great restaurants</h1>
+  <p class="hero__sub">Search by name, cuisine, or neighbourhood</p>
+  <form class="hero__search" action="{{ url_for('browse') }}" method="GET">
+    <input type="text" name="q" placeholder="Restaurant name, cuisine, city…">
+    <button type="submit">Search</button>
+  </form>
 </section>
 
-
-<!--Browse by category-->
+<!-- Browse by cuisine -->
 <section class="section">
   <div class="container">
-    <div>
-      <h2>Browse by Cuisine</h2>
-      <a href="{{ url_for('browse') }}" style="font-size:.9rem">
-        View all &rarr;
-      </a>
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Explore</p>
+        <h2>Browse by Cuisine</h2>
+      </div>
+      <a href="{{ url_for('browse') }}">View all →</a>
     </div>
 
-    <div class="container">
+    <div class="chip-list">
       {% for cat in categories %}
-        <a href="{{ url_for('browse', category=cat.category_id) }}">
-            {{ cat.category }}
-            <span style="font-size:.8em">({{ cat.restaurant_count }})</span>
+        <a href="{{ url_for('browse', category=cat.category_id) }}" class="chip">
+          {{ cat.category }}
+          <span class="chip__count">{{ cat.restaurant_count }}</span>
         </a>
       {% endfor %}
     </div>
   </div>
 </section>
 
+<!-- Top rated -->
 <section class="section">
-    <div class="container">
-        <div>
-            <h2>Top Rated Restaurants</h2>
-        </div>
-
-        {% if top_restaurants %}
-            <ul>
-                {% for r in top_restaurants %}
-                    <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}">
-                        <li>{{ r.name }}</li>
-                        <span class="text-muted" style="font-size:.8rem">
-                            {{ r.avg_rating }} stars ({{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %})    
-                        </span>
-                    </a>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No restaurants found.</p>
-        {% endif %}
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Rankings</p>
+        <h2>Top Rated Restaurants</h2>
+      </div>
     </div>
+
+    {% if top_restaurants %}
+      <ul class="restaurant-list">
+        {% for r in top_restaurants %}
+          <li>
+            <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}" class="restaurant-card">
+              <span class="restaurant-card__rank">{{ loop.index }}</span>
+              <div class="restaurant-card__icon">🍽</div>
+              <div class="restaurant-card__body">
+                <div class="restaurant-card__name">{{ r.name }}</div>
+                <div class="restaurant-card__meta">
+                  <span class="restaurant-card__stars">
+                    {% for i in range(r.avg_rating | round | int) %}★{% endfor %}
+                  </span>
+                  <span>{{ "%.1f"|format(r.avg_rating) }}</span>
+                  <span>·</span>
+                  <span>{{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}</span>
+                </div>
+              </div>
+              <span class="restaurant-card__arrow">›</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state">No restaurants found.</div>
+    {% endif %}
+  </div>
 </section>
+
 {% endblock %}

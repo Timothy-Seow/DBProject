@@ -2,155 +2,157 @@
 {% block title %}My Profile{% endblock %}
 
 {% block content %}
+<div class="profile-layout">
 
-<div id="profile-header">
-    <h2>Account Information</h2>
-    <div class="profile-name">{{ user.username }}</div>
-    <div class="profile-email">{{ user.email }}</div>
-    <div class="profile-stats">
-        <div>
-            <div>Reviews Written - {{ history|length }}</div>
-        </div>
-        <div>
-            <div>
-                Avg Rating Given
-                {% if history %}
-                    - {{ "%.1f"|format((history|map(attribute='rating')|list|sum) / history|length) }}
-                {% else %}—{% endif %}
-            </div>
-        </div>
+  <!-- Profile header card -->
+  <div id="profile-header">
+    <div>
+      <p class="eyebrow">Account</p>
+      <div class="profile-name">{{ user.username }}</div>
+      <div class="profile-email">{{ user.email }}</div>
     </div>
-</div>
+    <div class="profile-stats">
+      <div>
+        <div class="profile-stat-label">Reviews written</div>
+        <div class="profile-stat-value">{{ history|length }}</div>
+      </div>
+      <div>
+        <div class="profile-stat-label">Avg. rating given</div>
+        <div class="profile-stat-value">
+          {% if history %}
+            {{ "%.1f"|format((history|map(attribute='rating')|list|sum) / history|length) }}
+          {% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 
-<div id="reviews_container">
+  <!-- Reviews -->
+  <div id="reviews_container">
     <h2>Reviews</h2>
+
     {% if history %}
-        {% for review in history %}
+      {% for review in history %}
         <div class="review">
+          <div class="review__header">
             <div>
-            <div>
-                <span>{{ review.review_type|replace('_',' ')|title }}</span>
-                <div style="margin-top:6px">
-                    {{ review.subject }}
-                </div>
+              <span class="review__type">{{ review.review_type|replace('_',' ')|title }}</span>
+              <div class="review__subject">{{ review.subject }}</div>
             </div>
             <div class="stars">
-                {% for i in range(1,6) %}
+              {% for i in range(1,6) %}
                 <span class="stars_icon {% if i <= review.rating %}filled{% endif %}">★</span>
-                {% endfor %}
+              {% endfor %}
             </div>
-            </div>
-            {% if review.title %}
-                <div>{{ review.title }}</div>
-            {% endif %}
-            {% if review.content %}
-                <div>{{ review.content }}</div>
-            {% endif %}
+          </div>
+
+          {% if review.title %}
+            <div class="review__title">{{ review.title }}</div>
+          {% endif %}
+          {% if review.content %}
+            <p class="review__content">{{ review.content }}</p>
+          {% endif %}
+
+          <div class="review__actions">
             {% if review.review_type == 'menu_item' %}
-                <form method="POST" action="{{ url_for('delete_review', rev_id=review.review_id, rev_type='men') }}" onsubmit="return confirm('Delete your review?')">
-                    <button type="submit" class="btn btn--danger btn--sm">🗑 Delete</button>
+              <form method="POST" action="{{ url_for('delete_review', rev_id=review.review_id, rev_type='men') }}"
+                    onsubmit="return confirm('Delete your review?')">
+                <button type="submit" class="btn btn--danger btn--sm">🗑 Delete</button>
+              </form>
+
+              <div id="ir-view-{{ review.review_id }}">
+                <button onclick="toggleItemEdit({{ review.review_id }})" class="btn btn--ghost btn--sm">✏ Edit</button>
+              </div>
+
+              <div id="ir-edit-{{ review.review_id }}" style="display:none;width:100%;margin-top:12px">
+                <form method="POST" action="{{ url_for('update_item_review', rev_id=review.review_id) }}">
+                  <div class="star-picker">
+                    {% for s in [5,4,3,2,1] %}
+                      <input type="radio" id="ire-{{ review.review_id }}-{{ s }}" name="rating" value="{{ s }}"
+                             {% if review.rating == s %}checked{% endif %} required>
+                      <label for="ire-{{ review.review_id }}-{{ s }}">★</label>
+                    {% endfor %}
+                  </div>
+                  <textarea name="content" class="form-control" rows="2">{{ review.content or '' }}</textarea>
+                  <div style="display:flex;gap:6px;margin-top:8px">
+                    <button type="submit" class="btn btn--primary btn--sm">Save</button>
+                    <button type="button" class="btn btn--ghost btn--sm"
+                            onclick="toggleItemEdit({{ review.review_id }})">Cancel</button>
+                  </div>
                 </form>
-                <div>
-                    <div id="ir-view-{{ review.review_id }}">
-                        <button onclick="toggleItemEdit({{ review.review_id }})"> ✏ Edit</button>
-                    </div>
-                    <!-- Inline edit form (hidden by default) -->
-                    <div id="ir-edit-{{ review.review_id }}" style="display:none">
-                        <form method="POST" action="{{ url_for('update_item_review', rev_id=review.review_id) }}">
-                            <div class="star-picker" style="margin-bottom:8px">
-                                {% for s in [5,4,3,2,1] %}
-                                <input type="radio"
-                                        id="ire-{{ review.review_id }}-{{ s }}"
-                                        name="rating" value="{{ s }}"
-                                        {% if review.rating == s %}checked{% endif %} required>
-                                <label for="ire-{{ review.review_id }}-{{ s }}">★</label>
-                                {% endfor %}
-                            </div>
-                            <textarea name="content" class="form-control" rows="2"
-                                        style="font-size:.85rem">{{review.content or '' }}</textarea>
-                            <div style="display:flex;gap:6px;margin-top:8px">
-                                <button type="submit" class="btn btn--primary btn--sm">Save</button>
-                                <button type="button" class="btn btn--ghost btn--sm"
-                                        onclick="toggleItemEdit({{ review.review_id }})">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+              </div>
+
             {% elif review.review_type == 'restaurant' %}
-                <form method="POST" action="{{ url_for('delete_review', rev_id=review.review_id, rev_type='res') }}" onsubmit="return confirm('Delete your review?')">
-                    <button type="submit" class="btn btn--danger btn--sm">🗑 Delete</button>
+              <form method="POST" action="{{ url_for('delete_review', rev_id=review.review_id, rev_type='res') }}"
+                    onsubmit="return confirm('Delete your review?')">
+                <button type="submit" class="btn btn--danger btn--sm">🗑 Delete</button>
+              </form>
+              <button onclick="toggleRestEdit({{ review.review_id }})" class="btn btn--ghost btn--sm">✏ Edit</button>
+
+              <div id="rv-edit-{{ review.review_id }}" class="review-edit-panel" style="display:none;width:100%">
+                <form method="POST" action="{{ url_for('update_review', rev_id=review.review_id) }}">
+                  <div class="form-group">
+                    <label>Rating</label>
+                    <div class="star-picker">
+                      {% for s in [5,4,3,2,1] %}
+                        <input type="radio" id="re-{{ review.review_id }}-{{ s }}" name="rating" value="{{ s }}"
+                               {% if review.rating == s %}checked{% endif %} required>
+                        <label for="re-{{ review.review_id }}-{{ s }}">★</label>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" class="form-control"
+                           value="{{ review.title or '' }}" placeholder="Summarise your experience">
+                  </div>
+                  <div class="form-group">
+                    <label>Review</label>
+                    <textarea name="content" class="form-control" rows="3">{{ review.content or '' }}</textarea>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button type="submit" class="btn btn--primary btn--sm">Save changes</button>
+                    <button type="button" class="btn btn--ghost btn--sm"
+                            onclick="toggleRestEdit({{ review.review_id }})">Cancel</button>
+                  </div>
                 </form>
-                <button onclick="toggleRestEdit({{ review.review_id }})">✏ Edit</button>
-
-                <div id="rv-edit-{{ review.review_id }}" style="display:none; margin-top:12px; padding:16px; border:1px solid var(--tan);">
-                    <form method="POST" action="{{ url_for('update_review', rev_id=review.review_id) }}">
-                        <div class="form-group">
-                            <label>Rating</label>
-                            <div class="star-picker">
-                                {% for s in [5,4,3,2,1] %}
-                                    <input type="radio" id="re-{{ review.review_id }}-{{ s }}" name="rating" value="{{ s }}"
-                                        {% if review.rating == s %}checked{% endif %} required>
-                                    <label for="re-{{ review.review_id }}-{{ s }}">★</label>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Title</label>
-                            <input type="text" name="title" class="form-control"
-                                value="{{ review.title or '' }}"
-                                placeholder="Summarise your experience">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Review</label>
-                            <textarea name="content" class="form-control" rows="3">{{ review.content or '' }}</textarea>
-                        </div>
-
-                        <div style="display:flex;gap:8px">
-                            <button type="submit" class="btn btn--primary btn--sm">Save changes</button>
-                            <button type="button" class="btn btn--ghost btn--sm" onclick="toggleRestEdit({{ review.review_id }})">Cancel</button>
-                        </div>
-                    </form>
-                </div>
+              </div>
             {% endif %}
+          </div>
         </div>
-        {% endfor %}
+      {% endfor %}
     {% else %}
-        <div>
-            <p>No reviews yet.</p>
-        </div>
+      <div class="empty-state">No reviews yet. Go explore some restaurants!</div>
     {% endif %}
-</div>
+  </div>
 
-<div id="favorites-container">
-
+  <!-- Favorites -->
+  <div id="favorites-container">
     <h2>Favorite Restaurants</h2>
     {% if favs %}
-        <ul>
-            {% for f in favs %}
-                <a href="{{ url_for('restaurant', rid=f.restaurant_id) }}">
-                    <li>{{ f.name }}</li>
-                </a>
-            {% endfor %}
-        </ul>
+      <ul class="fav-list">
+        {% for f in favs %}
+          <li>
+            <a href="{{ url_for('restaurant', rid=f.restaurant_id) }}" class="fav-item">
+              {{ f.name }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
     {% else %}
-        <p>No favorite restaurants yet.</p>
+      <div class="empty-state">No favorites yet. Save restaurants you love!</div>
     {% endif %}
-</div>
+  </div>
 
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  /* Toggle the inline edit form for a restaurant review */
   function toggleRestEdit(id) {
     const edit = document.getElementById('rv-edit-' + id);
-    const showing = edit.style.display !== 'none';
-    edit.style.display = showing ? 'none' : '';
+    edit.style.display = edit.style.display !== 'none' ? 'none' : '';
   }
-
-  /* Toggle the inline edit form for a menu item review */
   function toggleItemEdit(id) {
     const view = document.getElementById('ir-view-' + id);
     const edit = document.getElementById('ir-edit-' + id);

@@ -14,6 +14,57 @@
   </form>
 </section>
 
+<!-- Personalised picks (shown when logged in and preferences set) -->
+{% if user and personalised %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">Just for you</p>
+        <h2>Recommended for You</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <a href="{{ url_for('profile') }}#preferences" class="chip chip--outline">Edit preferences</a>
+        <form method="POST" action="{{ url_for('toggle_personalised') }}" style="margin:0">
+          <button type="submit" class="clear-link" style="font-size:.8rem">Hide</button>
+        </form>
+      </div>
+    </div>
+    <ul class="restaurant-list">
+      {% for r in personalised %}
+        <li>
+          <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}" class="restaurant-card">
+            <div class="restaurant-card__icon">🍽</div>
+            <div class="restaurant-card__body">
+              <div class="restaurant-card__name">{{ r.name }}</div>
+              <div class="restaurant-card__meta">
+                <span class="restaurant-card__stars">
+                  {% for i in range(r.avg_rating | round | int) %}★{% endfor %}
+                </span>
+                <span>{{ "%.1f"|format(r.avg_rating) if r.avg_rating else '—' }}</span>
+                <span>·</span>
+                <span>{{ r.category }}</span>
+              </div>
+            </div>
+            <span class="restaurant-card__arrow">›</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% elif user and user_prefs.get('show_personalized') and not personalised %}
+<section class="section">
+  <div class="container">
+    <div class="personalised-prompt">
+      <span>✨</span>
+      <p>Set your cuisine preferences to get personalised restaurant picks.</p>
+      <a href="{{ url_for('profile') }}#preferences" class="btn btn--primary btn--sm">Set preferences</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <!-- Browse by cuisine -->
 <section class="section">
   <div class="container">

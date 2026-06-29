@@ -159,7 +159,10 @@
           <li class="review-card">
             <div class="review-card__header">
               <div>
-                <span class="review-card__user">{{ review.username }}</span>
+                <!-- Clickable username → public profile -->
+                <a href="{{ url_for('public_profile', username=review.username) }}" class="reviewer-link">
+                  {{ review.username }}
+                </a>
                 <div class="review-card__meta" style="display:flex;align-items:center;gap:6px;margin-top:3px">
                   <span class="review-card__stars">
                     {% for i in range(review.rating) %}★{% endfor %}

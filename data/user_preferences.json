@@ -1,0 +1,17 @@
+{
+  "_schema": {
+    "version": "1.0",
+    "description": "NoSQL store for user cuisine preferences and UI settings",
+    "keys": "user_id (string) \u2192 preference object"
+  },
+  "users": {
+    "1": {
+      "cuisine_preferences": [
+        1,
+        13
+      ],
+      "price_range": null,
+      "show_personalized": false
+    }
+  }
+}

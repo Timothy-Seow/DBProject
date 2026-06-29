@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS menu_categories (
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id)
 );
 
- -- many to 1 relation with users and restaurants | made it so that a user can only review a restaurant once
+-- many to 1 relation with users and restaurants | a user can only review a restaurant once
 CREATE TABLE IF NOT EXISTS restaurant_reviews (
     review_id INTEGER PRIMARY KEY AUTOINCREMENT,
     restaurant_id INTEGER NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS restaurant_reviews (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- many to 1 relation with users and menu_items | made it so that a user can only review a menu item once
+-- many to 1 relation with users and menu_items | a user can only review a menu item once
 CREATE TABLE IF NOT EXISTS menu_item_reviews (
     review_id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER NOT NULL,
@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS favorites (
     restaurant_id INTEGER NOT NULL,
     UNIQUE (user_id, restaurant_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id)
 );
 
 CREATE TABLE IF NOT EXISTS upvotes (
@@ -94,6 +95,18 @@ CREATE TABLE IF NOT EXISTS upvotes (
     upvotes INTEGER NOT NULL CHECK(upvotes IN (0, 1)),
     UNIQUE (user_id, review_id, review_type),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- NEW: social follows (many-to-many on users)
+CREATE TABLE IF NOT EXISTS follows (
+    follow_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    follower_id  INTEGER NOT NULL,   -- the user doing the following
+    followee_id  INTEGER NOT NULL,   -- the user being followed
+    created_at   TEXT DEFAULT (datetime('now')),
+    UNIQUE (follower_id, followee_id),
+    CHECK  (follower_id != followee_id),
+    FOREIGN KEY (follower_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (followee_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 

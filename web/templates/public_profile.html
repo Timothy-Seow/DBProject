@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.username }}{% endblock %}
+
+{% block content %}
+<div class="profile-layout">
+
+  <!-- Header -->
+  <div id="profile-header">
+    <div>
+      <p class="eyebrow">Member</p>
+      <div class="profile-name">{{ profile.username }}</div>
+    </div>
+    <div class="profile-stats">
+      <div>
+        <div class="profile-stat-label">Reviews</div>
+        <div class="profile-stat-value">{{ profile.reviews|length }}</div>
+      </div>
+      <div>
+        <div class="profile-stat-label">Avg. rating</div>
+        <div class="profile-stat-value">{{ profile.avg_rating or '—' }}</div>
+      </div>
+      <div>
+        <button class="profile-stat-btn" onclick="toggleModal('followers-modal')">
+          <div class="profile-stat-label">Followers</div>
+          <div class="profile-stat-value">{{ counts.followers }}</div>
+        </button>
+      </div>
+      <div>
+        <button class="profile-stat-btn" onclick="toggleModal('following-modal')">
+          <div class="profile-stat-label">Following</div>
+          <div class="profile-stat-value">{{ counts.following }}</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Follow / Unfollow -->
+    {% if user %}
+      {% if is_following %}
+        <form method="POST" action="{{ url_for('unfollow', username=profile.username) }}" style="margin-top:14px">
+          <button type="submit" class="btn btn--ghost">✓ Following</button>
+        </form>
+      {% else %}
+        <form method="POST" action="{{ url_for('follow', username=profile.username) }}" style="margin-top:14px">
+          <button type="submit" class="btn btn--primary">+ Follow</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Reviews -->
+  <div id="reviews_container">
+    <h2>Reviews by {{ profile.username }}</h2>
+
+    {% if profile.reviews %}
+      {% for review in profile.reviews %}
+        <div class="review">
+          <div class="review__header">
+            <div>
+              <span class="review__type">{{ review.review_type|replace('_',' ')|title }}</span>
+              <div class="review__subject">
+                <a href="{{ url_for('restaurant', rid=review.restaurant_id) }}" class="subject-link">
+                  {{ review.subject }}
+                </a>
+              </div>
+            </div>
+            <div class="stars">
+              {% for i in range(1,6) %}
+                <span class="stars_icon {% if i <= review.rating %}filled{% endif %}">★</span>
+              {% endfor %}
+            </div>
+          </div>
+
+          {% if review.title %}
+            <div class="review__title">{{ review.title }}</div>
+          {% endif %}
+          {% if review.content %}
+            <p class="review__content">{{ review.content }}</p>
+          {% endif %}
+
+          <div class="review__meta">
+            <span class="text-muted" style="font-size:.8rem">👍 {{ review.upvotes }} found helpful</span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">{{ profile.username }} hasn't written any reviews yet.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Followers modal -->
+<div id="followers-modal" class="modal" style="display:none" onclick="closeModalOutside(event,'followers-modal')">
+  <div class="modal__box">
+    <div class="modal__header">
+      <h3>Followers</h3>
+      <button onclick="toggleModal('followers-modal')" class="modal__close">✕</button>
+    </div>
+    <p class="empty-state" style="padding:20px 0">Follow counts shown above.</p>
+  </div>
+</div>
+
+<!-- Following modal -->
+<div id="following-modal" class="modal" style="display:none" onclick="closeModalOutside(event,'following-modal')">
+  <div class="modal__box">
+    <div class="modal__header">
+      <h3>Following</h3>
+      <button onclick="toggleModal('following-modal')" class="modal__close">✕</button>
+    </div>
+    <p class="empty-state" style="padding:20px 0">Follow counts shown above.</p>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function toggleModal(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  }
+  function closeModalOutside(e, id) {
+    if (e.target.id === id) toggleModal(id);
+  }
+</script>
+{% endblock %}

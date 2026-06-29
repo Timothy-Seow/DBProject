@@ -13,18 +13,55 @@
     </div>
     <div class="profile-stats">
       <div>
-        <div class="profile-stat-label">Reviews written</div>
+        <div class="profile-stat-label">Reviews</div>
         <div class="profile-stat-value">{{ history|length }}</div>
       </div>
       <div>
-        <div class="profile-stat-label">Avg. rating given</div>
+        <div class="profile-stat-label">Avg. rating</div>
         <div class="profile-stat-value">
           {% if history %}
             {{ "%.1f"|format((history|map(attribute='rating')|list|sum) / history|length) }}
           {% else %}—{% endif %}
         </div>
       </div>
+      <div>
+        <button class="profile-stat-btn" onclick="toggleModal('followers-modal')">
+          <div class="profile-stat-label">Followers</div>
+          <div class="profile-stat-value">{{ counts.followers }}</div>
+        </button>
+      </div>
+      <div>
+        <button class="profile-stat-btn" onclick="toggleModal('following-modal')">
+          <div class="profile-stat-label">Following</div>
+          <div class="profile-stat-value">{{ counts.following }}</div>
+        </button>
+      </div>
     </div>
+  </div>
+
+  <!-- Cuisine Preferences panel -->
+  <div id="preferences" class="pref-panel">
+    <h2>Cuisine Preferences</h2>
+    <p class="pref-hint">Select the cuisines you love — we'll surface matching restaurants on your home page.</p>
+    <form method="POST" action="{{ url_for('save_cuisine_preferences') }}">
+      <div class="pref-chip-grid">
+        {% for cat in all_cats %}
+          <label class="pref-chip {% if cat.category_id in user_prefs.get('cuisine_preferences', []) %}pref-chip--on{% endif %}">
+            <input type="checkbox" name="cuisine_preferences" value="{{ cat.category_id }}"
+                   {% if cat.category_id in user_prefs.get('cuisine_preferences', []) %}checked{% endif %}>
+            {{ cat.name }}
+          </label>
+        {% endfor %}
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <button type="submit" class="btn btn--primary btn--sm">Save preferences</button>
+        <form method="POST" action="{{ url_for('toggle_personalised') }}" style="margin:0">
+          <button type="submit" class="btn btn--ghost btn--sm">
+            {{ 'Disable' if user_prefs.get('show_personalized', True) else 'Enable' }} personalised feed
+          </button>
+        </form>
+      </div>
+    </form>
   </div>
 
   <!-- Reviews -->
@@ -66,6 +103,7 @@
 
               <div id="ir-edit-{{ review.review_id }}" style="display:none;width:100%;margin-top:12px">
                 <form method="POST" action="{{ url_for('update_item_review', rev_id=review.review_id) }}">
+                  <input type="hidden" name="restaurant_id" value="{{ review.restaurant_id }}">
                   <div class="star-picker">
                     {% for s in [5,4,3,2,1] %}
                       <input type="radio" id="ire-{{ review.review_id }}-{{ s }}" name="rating" value="{{ s }}"
@@ -91,6 +129,7 @@
 
               <div id="rv-edit-{{ review.review_id }}" class="review-edit-panel" style="display:none;width:100%">
                 <form method="POST" action="{{ url_for('update_review', rev_id=review.review_id) }}">
+                  <input type="hidden" name="restaurant_id" value="{{ review.restaurant_id }}">
                   <div class="form-group">
                     <label>Rating</label>
                     <div class="star-picker">
@@ -145,13 +184,52 @@
   </div>
 
 </div>
+
+<!-- Followers modal -->
+<div id="followers-modal" class="modal" style="display:none" onclick="closeModalOutside(event,'followers-modal')">
+  <div class="modal__box">
+    <div class="modal__header">
+      <h3>Followers</h3>
+      <button onclick="toggleModal('followers-modal')" class="modal__close">✕</button>
+    </div>
+    {% if followers %}
+      <ul class="user-list">
+        {% for u in followers %}
+          <li><a href="{{ url_for('public_profile', username=u.username) }}" class="user-list__item">{{ u.username }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-state" style="padding:20px 0">No followers yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Following modal -->
+<div id="following-modal" class="modal" style="display:none" onclick="closeModalOutside(event,'following-modal')">
+  <div class="modal__box">
+    <div class="modal__header">
+      <h3>Following</h3>
+      <button onclick="toggleModal('following-modal')" class="modal__close">✕</button>
+    </div>
+    {% if following %}
+      <ul class="user-list">
+        {% for u in following %}
+          <li><a href="{{ url_for('public_profile', username=u.username) }}" class="user-list__item">{{ u.username }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-state" style="padding:20px 0">You're not following anyone yet.</p>
+    {% endif %}
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
   function toggleRestEdit(id) {
-    const edit = document.getElementById('rv-edit-' + id);
-    edit.style.display = edit.style.display !== 'none' ? 'none' : '';
+    const el = document.getElementById('rv-edit-' + id);
+    el.style.display = el.style.display !== 'none' ? 'none' : '';
   }
   function toggleItemEdit(id) {
     const view = document.getElementById('ir-view-' + id);
@@ -159,6 +237,25 @@
     const showing = edit.style.display !== 'none';
     view.style.display = showing ? '' : 'none';
     edit.style.display = showing ? 'none' : '';
+  }
+  function toggleModal(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  }
+  function closeModalOutside(e, id) {
+    if (e.target.id === id) toggleModal(id);
+  }
+
+  // highlight preference chip labels when checkbox changes
+  document.querySelectorAll('.pref-chip input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.parentElement.classList.toggle('pref-chip--on', cb.checked);
+    });
+  });
+
+  // scroll to #preferences on page load if hash present
+  if (location.hash === '#preferences') {
+    document.getElementById('preferences')?.scrollIntoView({ behavior: 'smooth' });
   }
 </script>
 {% endblock %}

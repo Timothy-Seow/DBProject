@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Folio{% endblock %} · Folio</title>
+  <title>{% block title %}Nom Nom{% endblock %} · Nom Nom</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   {% block head %}{% endblock %}
 </head>
 <body>
 
 <nav class="navbar">
-  <a href="{{ url_for('home') }}" class="navbar__brand">Folio</a>
+  <a href="{{ url_for('home') }}" class="navbar__brand">Nom Nom</a>
 
   <div class="nav_links">
     <a href="{{ url_for('home') }}">Home</a>
@@ -44,7 +44,7 @@
 {% block content %}{% endblock %}
 
 <footer>
-  <p>&copy; {{ 2025 }} Folio · Restaurant Discovery</p>
+  <p>&copy; {{ 2025 }} Nom Nom · Restaurant Discovery</p>
 </footer>
 
 {% block scripts %}{% endblock %}

@@ -448,7 +448,31 @@ def get_follow_counts(user_id: int) -> dict:
         following = conn.execute(
             "SELECT COUNT(*) FROM follows WHERE follower_id=?", (user_id,)
         ).fetchone()[0]
+
     return {"followers": followers, "following": following}
+
+def get_following_feed(uid: int, limit: int = 20) -> list[dict]:
+    """Return recent restaurant reviews by users that uid follows,
+    ordered newest first. Each row has: username, restaurant_id,
+    restaurant_name, rating, title, content."""
+    with get_connection() as conn:
+        rows = conn.execute("""
+            SELECT u.username,
+                   r.restaurant_id,
+                   r.name   AS restaurant_name,
+                   rr.rating,
+                   rr.title,
+                   rr.content,
+                   rr.review_id
+            FROM follows f
+            JOIN restaurant_reviews rr ON rr.user_id = f.followee_id
+            JOIN users       u  ON u.user_id  = rr.user_id
+            JOIN restaurants r  ON r.restaurant_id = rr.restaurant_id
+            WHERE f.follower_id = ?
+            ORDER BY rr.review_id DESC
+            LIMIT ?
+        """, (uid, limit)).fetchall()
+    return [dict(r) for r in rows]
 
 
 # ================================================================

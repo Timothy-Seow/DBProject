@@ -1,6 +1,104 @@
 {% extends "base.html" %}
 {% block title %}Home{% endblock %}
 
+{% block head %}
+<style>
+  /* Two-column layout for recommendations + top rated */
+  .home-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 768px) {
+    .home-columns {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Following feed */
+  .feed-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border, #e8e8e8);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    transition: box-shadow 0.15s;
+  }
+  .feed-card:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  .feed-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .8rem;
+    color: var(--text-muted, #888);
+    margin-bottom: 8px;
+  }
+  .feed-card__reviewer {
+    font-weight: 600;
+    color: var(--text, #222);
+    text-decoration: none;
+  }
+  .feed-card__reviewer:hover { text-decoration: underline; }
+  .feed-card__restaurant {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text, #222);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .feed-card__restaurant:hover { text-decoration: underline; }
+  .feed-card__review-title {
+    font-size: .9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text, #333);
+  }
+  .feed-card__review-content {
+    font-size: .85rem;
+    color: var(--text-muted, #555);
+    line-height: 1.5;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .feed-card__stars {
+    color: #f5a623;
+    font-size: .85rem;
+    letter-spacing: 1px;
+  }
+  .feed-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted, #888);
+    border: 1px dashed var(--border, #ddd);
+    border-radius: 12px;
+  }
+  .feed-empty a { color: var(--accent, #e8611a); }
+
+  .col-header {
+    margin-bottom: 16px;
+  }
+  .col-header .eyebrow {
+    margin-bottom: 2px;
+  }
+  .col-header h2 {
+    margin: 0;
+  }
+  .col-header-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <!-- Hero search -->
@@ -14,114 +112,140 @@
   </form>
 </section>
 
-<!-- Personalised picks (shown when logged in and preferences set) -->
-{% if user and personalised %}
+<!-- Two-column: Recommended + Top Rated -->
 <section class="section">
   <div class="container">
-    <div class="section-header">
+    <div class="home-columns">
+
+      <!-- Left: Recommended for You -->
       <div>
-        <p class="eyebrow">Just for you</p>
-        <h2>Recommended for You</h2>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <a href="{{ url_for('profile') }}#preferences" class="chip chip--outline">Edit preferences</a>
-        <form method="POST" action="{{ url_for('toggle_personalised') }}" style="margin:0">
-          <button type="submit" class="clear-link" style="font-size:.8rem">Hide</button>
-        </form>
-      </div>
-    </div>
-    <ul class="restaurant-list">
-      {% for r in personalised %}
-        <li>
-          <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}" class="restaurant-card">
-            <div class="restaurant-card__icon">🍽</div>
-            <div class="restaurant-card__body">
-              <div class="restaurant-card__name">{{ r.name }}</div>
-              <div class="restaurant-card__meta">
-                <span class="restaurant-card__stars">
-                  {% for i in range(r.avg_rating | round | int) %}★{% endfor %}
-                </span>
-                <span>{{ "%.1f"|format(r.avg_rating) if r.avg_rating else '—' }}</span>
-                <span>·</span>
-                <span>{{ r.category }}</span>
-              </div>
+        {% if user and personalised %}
+          <div class="col-header-row">
+            <div class="col-header">
+              <p class="eyebrow">Just for you</p>
+              <h2>Recommended</h2>
             </div>
-            <span class="restaurant-card__arrow">›</span>
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
-</section>
-{% elif user and user_prefs.get('show_personalized') and not personalised %}
-<section class="section">
-  <div class="container">
-    <div class="personalised-prompt">
-      <span>✨</span>
-      <p>Set your cuisine preferences to get personalised restaurant picks.</p>
-      <a href="{{ url_for('profile') }}#preferences" class="btn btn--primary btn--sm">Set preferences</a>
+            <a href="{{ url_for('profile') }}#preferences" class="chip chip--outline">Edit preferences</a>
+          </div>
+          <ul class="restaurant-list">
+            {% for r in personalised %}
+              <li>
+                <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}" class="restaurant-card">
+                  <div class="restaurant-card__icon">🍽</div>
+                  <div class="restaurant-card__body">
+                    <div class="restaurant-card__name">{{ r.name }}</div>
+                    <div class="restaurant-card__meta">
+                      <span class="restaurant-card__stars">
+                        {% for i in range(r.avg_rating | round | int) %}★{% endfor %}
+                      </span>
+                      <span>{{ "%.1f"|format(r.avg_rating) if r.avg_rating else '—' }}</span>
+                      <span>·</span>
+                      <span>{{ r.category }}</span>
+                    </div>
+                  </div>
+                  <span class="restaurant-card__arrow">›</span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% elif user and user_prefs.get('show_personalized') and not personalised %}
+          <div class="col-header">
+            <p class="eyebrow">Just for you</p>
+            <h2>Recommended</h2>
+          </div>
+          <div class="personalised-prompt">
+            <span>✨</span>
+            <p>Set your cuisine preferences to get personalised restaurant picks.</p>
+            <a href="{{ url_for('profile') }}#preferences" class="btn btn--primary btn--sm">Set preferences</a>
+          </div>
+        {% else %}
+          <div class="col-header">
+            <p class="eyebrow">Just for you</p>
+            <h2>Recommended</h2>
+          </div>
+          <div class="personalised-prompt">
+            <span>✨</span>
+            <p>Sign in and set your cuisine preferences to get personalised picks.</p>
+            <a href="{{ url_for('auth') }}" class="btn btn--primary btn--sm">Sign in</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Right: Top Rated -->
+      <div>
+        <div class="col-header">
+          <p class="eyebrow">Rankings</p>
+          <h2>Top Rated</h2>
+        </div>
+        {% if top_restaurants %}
+          <ul class="restaurant-list">
+            {% for r in top_restaurants %}
+              <li>
+                <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}" class="restaurant-card">
+                  <span class="restaurant-card__rank">{{ loop.index }}</span>
+                  <div class="restaurant-card__icon">🍽</div>
+                  <div class="restaurant-card__body">
+                    <div class="restaurant-card__name">{{ r.name }}</div>
+                    <div class="restaurant-card__meta">
+                      <span class="restaurant-card__stars">
+                        {% for i in range(r.avg_rating | round | int) %}★{% endfor %}
+                      </span>
+                      <span>{{ "%.1f"|format(r.avg_rating) }}</span>
+                      <span>·</span>
+                      <span>{{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}</span>
+                    </div>
+                  </div>
+                  <span class="restaurant-card__arrow">›</span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="empty-state">No restaurants found.</div>
+        {% endif %}
+      </div>
+
     </div>
   </div>
 </section>
-{% endif %}
 
-<!-- Browse by cuisine -->
+<!-- Following Feed -->
 <section class="section">
   <div class="container">
     <div class="section-header">
       <div>
-        <p class="eyebrow">Explore</p>
-        <h2>Browse by Cuisine</h2>
+        <p class="eyebrow">From people you follow</p>
+        <h2>Recent Reviews</h2>
       </div>
-      <a href="{{ url_for('browse') }}">View all →</a>
     </div>
 
-    <div class="chip-list">
-      {% for cat in categories %}
-        <a href="{{ url_for('browse', category=cat.category_id) }}" class="chip">
-          {{ cat.category }}
-          <span class="chip__count">{{ cat.restaurant_count }}</span>
-        </a>
+    {% if not user %}
+      <div class="feed-empty">
+        <p><a href="{{ url_for('auth') }}">Sign in</a> to see reviews from people you follow.</p>
+      </div>
+    {% elif following_feed %}
+      {% for item in following_feed %}
+        <div class="feed-card">
+          <div class="feed-card__meta">
+            <a href="{{ url_for('public_profile', username=item.username) }}" class="feed-card__reviewer">{{ item.username }}</a>
+            <span>reviewed</span>
+            <span class="feed-card__stars">
+              {% for i in range(item.rating) %}★{% endfor %}{% for i in range(5 - item.rating) %}☆{% endfor %}
+            </span>
+          </div>
+          <a href="{{ url_for('restaurant', rid=item.restaurant_id) }}" class="feed-card__restaurant">{{ item.restaurant_name }}</a>
+          {% if item.title %}
+            <div class="feed-card__review-title">{{ item.title }}</div>
+          {% endif %}
+          {% if item.content %}
+            <p class="feed-card__review-content">{{ item.content }}</p>
+          {% endif %}
+        </div>
       {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- Top rated -->
-<section class="section">
-  <div class="container">
-    <div class="section-header">
-      <div>
-        <p class="eyebrow">Rankings</p>
-        <h2>Top Rated Restaurants</h2>
-      </div>
-    </div>
-
-    {% if top_restaurants %}
-      <ul class="restaurant-list">
-        {% for r in top_restaurants %}
-          <li>
-            <a href="{{ url_for('restaurant', rid=r.restaurant_id) }}" class="restaurant-card">
-              <span class="restaurant-card__rank">{{ loop.index }}</span>
-              <div class="restaurant-card__icon">🍽</div>
-              <div class="restaurant-card__body">
-                <div class="restaurant-card__name">{{ r.name }}</div>
-                <div class="restaurant-card__meta">
-                  <span class="restaurant-card__stars">
-                    {% for i in range(r.avg_rating | round | int) %}★{% endfor %}
-                  </span>
-                  <span>{{ "%.1f"|format(r.avg_rating) }}</span>
-                  <span>·</span>
-                  <span>{{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}</span>
-                </div>
-              </div>
-              <span class="restaurant-card__arrow">›</span>
-            </a>
-          </li>
-        {% endfor %}
-      </ul>
     {% else %}
-      <div class="empty-state">No restaurants found.</div>
+      <div class="feed-empty">
+        <p>Nothing here yet. <a href="{{ url_for('browse') }}">Browse restaurants</a> and find people to follow.</p>
+      </div>
     {% endif %}
   </div>
 </section>

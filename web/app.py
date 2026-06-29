@@ -39,6 +39,7 @@ def home():
 
     personalised     = []
     user_prefs       = {}
+    following_feed   = []
     if current_user():
         uid        = current_user()["user_id"]
         user_prefs = prefs.get_preferences(uid)
@@ -46,6 +47,7 @@ def home():
             personalised = db.get_restaurants_by_categories(
                 user_prefs["cuisine_preferences"], limit=6
             )
+        following_feed = db.get_following_feed(uid, limit=20)
 
     return render_template(
         "home.html",
@@ -53,6 +55,7 @@ def home():
         categories=categories,
         personalised=personalised,
         user_prefs=user_prefs,
+        following_feed=following_feed,
     )
 
 
@@ -283,7 +286,7 @@ def profile():
     uid      = current_user()["user_id"]
     history  = db.get_user_review_history(uid)
     favs     = db.get_user_favorites(uid)
-    counts   = db.get_follow_counts(uid)
+    follow_counts = db.get_follow_counts(uid)
     following = db.get_following(uid)
     followers = db.get_followers(uid)
     user_prefs = prefs.get_preferences(uid)
@@ -292,7 +295,7 @@ def profile():
         "profile.html",
         history=history,
         favs=favs,
-        counts=counts,
+        counts=follow_counts,
         following=following,
         followers=followers,
         user_prefs=user_prefs,
@@ -316,7 +319,7 @@ def public_profile(username):
         return redirect(url_for("home"))
 
     is_following = False
-    counts = db.get_follow_counts(profile_data["user_id"])
+    follow_counts = db.get_follow_counts(profile_data["user_id"])
     if current_user():
         is_following = db.is_following(current_user()["user_id"], profile_data["user_id"])
 
@@ -324,7 +327,7 @@ def public_profile(username):
         "public_profile.html",
         profile=profile_data,
         is_following=is_following,
-        counts=counts,
+        counts=follow_counts,
     )
 
 

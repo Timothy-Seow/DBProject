@@ -8,10 +8,11 @@
     "1": {
       "cuisine_preferences": [
         1,
-        13
+        13,
+        3
       ],
       "price_range": null,
-      "show_personalized": false
+      "show_personalized": true
     }
   }
 }

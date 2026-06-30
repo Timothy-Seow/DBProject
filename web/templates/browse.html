@@ -1,6 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Browse Restaurants{% endblock %}
 
+{% block head %}
+<style>
+  .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .checkbox-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .9rem;
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .checkbox-option input[type="checkbox"] {
+    accent-color: var(--accent, #e8611a);
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+  }
+  .restaurant-card__price {
+    color: var(--text-muted, #888);
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="browse-layout">
 
@@ -39,6 +69,28 @@
         </select>
       </div>
 
+      <div class="filter-group">
+        <label>Price Range</label>
+        <div class="checkbox-group">
+          <label class="checkbox-option">
+            <input type="checkbox" name="price" value="$" {% if '$' in query.price %}checked{% endif %}>
+            $ — Budget
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="price" value="$$" {% if '$$' in query.price %}checked{% endif %}>
+            $$ — Moderate
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="price" value="$$$" {% if '$$$' in query.price %}checked{% endif %}>
+            $$$ — Upscale
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="price" value="$$$$" {% if '$$$$' in query.price %}checked{% endif %}>
+            $$$$ — Fine dining
+          </label>
+        </div>
+      </div>
+
       <button type="submit" class="btn btn--primary">Apply Filters</button>
       <a href="{{ url_for('browse') }}" class="clear-link">Clear all</a>
     </form>
@@ -63,6 +115,10 @@
                 <div class="restaurant-card__name">{{ r.name }}</div>
                 <div class="restaurant-card__meta">
                   <span>{{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}</span>
+                  {% if r.price_range %}
+                    <span>·</span>
+                    <span class="restaurant-card__price">{{ r.price_range|price_dollars }}</span>
+                  {% endif %}
                 </div>
               </div>
               <span class="restaurant-card__arrow">›</span>

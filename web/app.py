@@ -28,6 +28,30 @@ def login_required(f):
     return decorated
 
 
+@app.template_filter("price_dollars")
+def price_dollars(value):
+    """Render a restaurant's price_range as a string of $ symbols.
+
+    Handles price_range stored as an int/digit string (1-4), as a
+    word ('Budget'/'Moderate'/'Upscale'/'Fine Dining'), or already
+    as a string of $ characters.
+    """
+    if not value:
+        return ""
+    value = str(value).strip()
+    if value and all(c == "$" for c in value):
+        return value
+    if value.isdigit():
+        return "$" * max(1, min(4, int(value)))
+    word_map = {
+        "budget": 1, "inexpensive": 1, "cheap": 1,
+        "moderate": 2, "mid-range": 2, "midrange": 2,
+        "upscale": 3, "expensive": 3,
+        "fine dining": 4, "luxury": 4, "very expensive": 4,
+    }
+    return "$" * word_map.get(value.lower(), 0)
+
+
 # ================================================================
 # HOME
 # ================================================================
@@ -45,8 +69,14 @@ def home():
         user_prefs = prefs.get_preferences(uid)
         if user_prefs.get("show_personalized") and user_prefs.get("cuisine_preferences"):
             personalised = db.get_restaurants_by_categories(
-                user_prefs["cuisine_preferences"], limit=6
+                user_prefs["cuisine_preferences"], limit=20
             )
+            price_pref = user_prefs.get("price_range")
+            if price_pref:
+                personalised = [
+                    r for r in personalised if r.get("price_range") == price_pref
+                ]
+            personalised = personalised[:6]
         following_feed = db.get_following_feed(uid, limit=20)
 
     return render_template(
@@ -65,21 +95,25 @@ def home():
 
 @app.route('/browse')
 def browse():
-    keyword    = request.args.get("q", "").strip()
-    category   = request.args.get("category", None, type=int)
-    price      = request.args.get("price", "").strip()
-    min_rating = request.args.get("min_rating", None, type=float)
-    city       = request.args.get("city", "").strip()
+    keyword     = request.args.get("q", "").strip()
+    category    = request.args.get("category", None, type=int)
+    prices      = [p.strip() for p in request.args.getlist("price") if p.strip()]
+    min_rating  = request.args.get("min_rating", None, type=float)
+    city        = request.args.get("city", "").strip()
 
-    results    = db.search_restaurants(
+    results = db.search_restaurants(
         keyword=keyword or None,
         category_id=category,
-        price_range=price or None,
+        price_range=None,
         min_rating=min_rating,
         city=city or None,
     )
+
+    if prices:
+        results = [r for r in results if price_dollars(r.get("price_range")) in prices]
+
     categories = db.get_category_summary()
-    query      = dict(q=keyword, category=category, price=price, min_rating=min_rating, city=city)
+    query      = dict(q=keyword, category=category, price=prices, min_rating=min_rating, city=city)
 
     return render_template("browse.html", restaurants=results, categories=categories, query=query)
 
@@ -370,9 +404,11 @@ def unfollow(username):
 @app.route("/preferences/cuisines", methods=["POST"])
 @login_required
 def save_cuisine_preferences():
-    uid      = current_user()["user_id"]
-    selected = request.form.getlist("cuisine_preferences", type=int)
+    uid         = current_user()["user_id"]
+    selected    = request.form.getlist("cuisine_preferences", type=int)
+    price_range = request.form.get("price_range", "").strip()
     prefs.set_cuisine_preferences(uid, selected)
+    prefs.set_price_range(uid, price_range or None)
     flash("Cuisine preferences saved!", "success")
     return redirect(url_for("profile"))
 

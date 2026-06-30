@@ -53,6 +53,18 @@
           </label>
         {% endfor %}
       </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label for="price_range">Preferred price range</label>
+        <select id="price_range" name="price_range" class="form-control">
+          <option value="" {% if not user_prefs.get('price_range') %}selected{% endif %}>Any price</option>
+          <option value="$" {% if user_prefs.get('price_range') == '$' %}selected{% endif %}>$ — Budget</option>
+          <option value="$$" {% if user_prefs.get('price_range') == '$$' %}selected{% endif %}>$$ — Moderate</option>
+          <option value="$$$" {% if user_prefs.get('price_range') == '$$$' %}selected{% endif %}>$$$ — Upscale</option>
+          <option value="$$$$" {% if user_prefs.get('price_range') == '$$$$' %}selected{% endif %}>$$$$ — Fine dining</option>
+        </select>
+      </div>
+
       <div style="margin-top:14px">
         <button type="submit" class="btn btn--primary btn--sm">Save preferences</button>
       </div>

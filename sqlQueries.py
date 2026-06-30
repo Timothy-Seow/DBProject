@@ -75,7 +75,7 @@ def get_user_by_username(username: str) -> dict | None:
 def get_top_rated_restaurants(limit: int = 5, min_reviews: int = 1) -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute("""
-            SELECT r.restaurant_id, r.name, r.avg_rating, r.total_reviews,
+            SELECT r.restaurant_id, r.name, r.avg_rating, r.total_reviews, r.price_range,
                    c.name AS category
             FROM restaurants r
             LEFT JOIN categories c ON c.category_id = r.category_id
@@ -134,7 +134,7 @@ def get_restaurants_by_categories(category_ids: list[int], limit: int = 10) -> l
     placeholders = ",".join("?" * len(category_ids))
     with get_connection() as conn:
         rows = conn.execute(f"""
-            SELECT r.restaurant_id, r.name, r.avg_rating, r.total_reviews,
+            SELECT r.restaurant_id, r.name, r.avg_rating, r.total_reviews, r.price_range,
                    c.name AS category
             FROM restaurants r
             LEFT JOIN categories c ON c.category_id = r.category_id

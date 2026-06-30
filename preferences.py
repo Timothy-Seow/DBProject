@@ -54,6 +54,19 @@ def set_cuisine_preferences(user_id: int, category_ids: list[int]) -> None:
     _save(data)
 
 
+def set_price_range(user_id: int, price_range: Optional[str]) -> None:
+    """Overwrite the user's preferred price range (e.g. '$', '$$', '$$$', '$$$$')."""
+    data = _load()
+    key  = str(user_id)
+    prefs = data["users"].setdefault(key, {
+        "cuisine_preferences": [],
+        "price_range":         None,
+        "show_personalized":   True,
+    })
+    prefs["price_range"] = price_range or None
+    _save(data)
+
+
 def toggle_personalized(user_id: int) -> bool:
     """Toggle the show_personalized flag and return the new value."""
     data  = _load()

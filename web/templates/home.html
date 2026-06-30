@@ -141,6 +141,10 @@
                       <span>{{ "%.1f"|format(r.avg_rating) if r.avg_rating else '—' }}</span>
                       <span>·</span>
                       <span>{{ r.category }}</span>
+                      {% if r.price_range %}
+                        <span>·</span>
+                        <span class="restaurant-card__price">{{ r.price_range|price_dollars }}</span>
+                      {% endif %}
                     </div>
                   </div>
                   <span class="restaurant-card__arrow">›</span>
@@ -155,8 +159,8 @@
           </div>
           <div class="personalised-prompt">
             <span>✨</span>
-            <p>Set your cuisine preferences to get personalised restaurant picks.</p>
-            <a href="{{ url_for('profile') }}#preferences" class="btn btn--primary btn--sm">Set preferences</a>
+            <p>No restaurants match your current cuisine and price preferences yet.</p>
+            <a href="{{ url_for('profile') }}#preferences" class="btn btn--primary btn--sm">Adjust preferences</a>
           </div>
         {% elif user %}
           <div class="col-header">
@@ -203,6 +207,10 @@
                       <span>{{ "%.1f"|format(r.avg_rating) }}</span>
                       <span>·</span>
                       <span>{{ r.total_reviews }} review{% if r.total_reviews != 1 %}s{% endif %}</span>
+                      {% if r.price_range %}
+                        <span>·</span>
+                        <span class="restaurant-card__price">{{ r.price_range|price_dollars }}</span>
+                      {% endif %}
                     </div>
                   </div>
                   <span class="restaurant-card__arrow">›</span>

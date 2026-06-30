@@ -158,6 +158,16 @@
             <p>Set your cuisine preferences to get personalised restaurant picks.</p>
             <a href="{{ url_for('profile') }}#preferences" class="btn btn--primary btn--sm">Set preferences</a>
           </div>
+        {% elif user %}
+          <div class="col-header">
+            <p class="eyebrow">Just for you</p>
+            <h2>Recommended</h2>
+          </div>
+          <div class="personalised-prompt">
+            <span>✨</span>
+            <p>Your personalised feed is disabled. Set your cuisine preferences to turn it back on.</p>
+            <a href="{{ url_for('profile') }}#preferences" class="btn btn--primary btn--sm">Set now</a>
+          </div>
         {% else %}
           <div class="col-header">
             <p class="eyebrow">Just for you</p>

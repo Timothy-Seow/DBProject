@@ -8,8 +8,7 @@
     "1": {
       "cuisine_preferences": [
         1,
-        13,
-        3
+        13
       ],
       "price_range": null,
       "show_personalized": true

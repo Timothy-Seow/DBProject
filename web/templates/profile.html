@@ -52,17 +52,18 @@
             {{ cat.name }}
           </label>
         {% endfor %}
-      </div>
-      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
         <button type="submit" class="btn btn--primary btn--sm">Save preferences</button>
+      </div>
+    </form>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
         <form method="POST" action="{{ url_for('toggle_personalised') }}" style="margin:0">
           <button type="submit" class="btn btn--ghost btn--sm">
             {{ 'Disable' if user_prefs.get('show_personalized', True) else 'Enable' }} personalised feed
           </button>
         </form>
       </div>
-    </form>
   </div>
+
 
   <!-- Reviews -->
   <div id="reviews_container">

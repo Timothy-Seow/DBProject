@@ -878,7 +878,7 @@ footer {
   border: none;
   padding: 0;
   cursor: pointer;
-  text-align: center;
+  text-align: left;
   color: inherit;
 }
 .profile-stat-btn:hover .profile-stat-value {

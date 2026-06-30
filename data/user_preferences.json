@@ -12,6 +12,13 @@
       ],
       "price_range": null,
       "show_personalized": true
+    },
+    "2": {
+      "cuisine_preferences": [
+        4
+      ],
+      "price_range": null,
+      "show_personalized": true
     }
   }
 }

@@ -320,6 +320,8 @@ def public_profile(username):
 
     is_following = False
     follow_counts = db.get_follow_counts(profile_data["user_id"])
+    followers = db.get_followers(profile_data["user_id"])
+    following = db.get_following(profile_data["user_id"])
     if current_user():
         is_following = db.is_following(current_user()["user_id"], profile_data["user_id"])
 
@@ -328,6 +330,8 @@ def public_profile(username):
         profile=profile_data,
         is_following=is_following,
         counts=follow_counts,
+        followers=followers,
+        following=following,
     )
 
 
